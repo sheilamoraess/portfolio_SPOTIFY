@@ -44,6 +44,15 @@ O projeto conta com um Laboratorio Analitico dinamico para que o usuario execute
   7. Generos por Volume de Hits Melancolicos (Grafico de barras com quantidade de faixas tristes de sucesso).
   8. Top 10 Artistas por Popularidade Media (Ranking de consistencia comercial dos artistas).
 
+## Demonstracao Visual do Dashboard
+Abaixo estao as capturas de tela do aplicativo web interativo funcionando com o tema visual gamer:
+
+### Relatorio de Insights de Mercado
+![Relatorio de Insights](dashboard/print_relatorio.png)
+
+### Laboratorio de Exploracao Interativo
+![Laboratorio de Exploracao](dashboard/print_laboratorio.png)
+
 ## Como Rodar o Projeto Localmente
 1. Clone este repositorio no seu computador.
 2. Instale as bibliotecas necessarias:
