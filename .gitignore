@@ -26,3 +26,7 @@ data/raw/
 .env
 .env.*
 secrets.toml
+
+# Documentos locais de estudo
+*Guia_de_Estudos*.txt
+*Projeto 1*.txt
