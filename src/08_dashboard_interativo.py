@@ -238,7 +238,10 @@ class DashboardSpotifyApp:
     def renderizar_cabecalho(self):
         """Renderiza a seção inicial com o título do dashboard."""
         st.title("O Algoritmo do Sucesso Musical")
-        st.markdown("Uma investigação profunda do DNA sonoro por trás dos maiores hits do Spotify através de dados e machine learning.")
+        st.markdown(
+            "Uma investigação profunda do DNA sonoro por trás dos maiores hits do Spotify através de dados e machine learning.  \n"
+            "Os dados utilizados nesta análise foram obtidos a partir do [Spotify Tracks Dataset no Kaggle](https://www.kaggle.com/datasets/maharshipandya/spotify-tracks-dataset), abrangendo as características técnicas de áudio extraídas diretamente da API oficial da plataforma."
+        )
 
     def renderizar_menu_navegacao(self):
         """Gera os três botões destacados de seleção entre Relatório Mundial, Relatório Nacional e Laboratório."""
@@ -265,8 +268,7 @@ class DashboardSpotifyApp:
 
         if mostrar_origem:
             st.markdown("---")
-            st.markdown("### Resumo das Informações Analisadas")
-            st.markdown("Os dados utilizados nesta análise foram obtidos a partir do [Spotify Tracks Dataset no Kaggle](https://www.kaggle.com/datasets/maharshipandya/spotify-tracks-dataset), abrangendo as características técnicas de áudio extraídas diretamente da API oficial da plataforma.")
+            st.markdown("### Resumo Geral das Informações")
         else:
             st.markdown("---")
             st.markdown("### KPIs Reativos aos Filtros do Laboratório")
