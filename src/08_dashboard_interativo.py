@@ -256,16 +256,20 @@ class DashboardSpotifyApp:
                 st.session_state.aba_selecionada = 'laboratorio'
                 st.rerun()
 
-    def renderizar_kpis(self, df_faixas):
-        """Calcula e exibe as métricas de resumo (KPIs) no topo da aplicação."""
-        total_musicas = df_faixas.shape[0]
-        total_generos = df_faixas['genero'].nunique()
-        total_artistas = df_faixas['artista'].nunique()
-        total_hits = df_faixas[df_faixas['popularidade'] >= 70].shape[0]
+    def renderizar_kpis(self, df_kpis, mostrar_origem=True):
+        """Calcula e exibe as métricas de resumo (KPIs) de forma dinâmica baseada no dataframe provido."""
+        total_musicas = df_kpis.shape[0]
+        total_generos = df_kpis['genero'].nunique()
+        total_artistas = df_kpis['artista'].nunique()
+        total_hits = df_kpis[df_kpis['popularidade'] >= 70].shape[0]
 
-        st.markdown("---")
-        st.markdown("### Resumo das Informações Analisadas")
-        st.markdown("Os dados utilizados nesta análise foram obtidos a partir do [Spotify Tracks Dataset no Kaggle](https://www.kaggle.com/datasets/maharshipandya/spotify-tracks-dataset), abrangendo as características técnicas de áudio extraídas diretamente da API oficial da plataforma.")
+        if mostrar_origem:
+            st.markdown("---")
+            st.markdown("### Resumo das Informações Analisadas")
+            st.markdown("Os dados utilizados nesta análise foram obtidos a partir do [Spotify Tracks Dataset no Kaggle](https://www.kaggle.com/datasets/maharshipandya/spotify-tracks-dataset), abrangendo as características técnicas de áudio extraídas diretamente da API oficial da plataforma.")
+        else:
+            st.markdown("---")
+            st.markdown("### KPIs Reativos aos Filtros do Laboratório")
 
         col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
         with col_kpi1:
@@ -530,11 +534,11 @@ class DashboardSpotifyApp:
                 insight_br3 = "O Sertanejo e o Funk possuem forte apelo de consumo em massa e rotação contínua nas plataformas de streaming atuais, concentrando os maiores volumes de engajamento diário de playlists comerciais. A MPB e o Samba, embora possuam valor cultural indiscutível, operam em nichos de consumo estáveis, mas com menor frequência de reprodução massiva nos charts."
                 st.markdown(f"<div style='{self.estilo_insight}'><strong>Insight:</strong><br>{insight_br3}</div>", unsafe_allow_html=True)
 
-    def renderizar_laboratorio(self, df_faixas):
-        """Monta a aba de laboratório dinâmico com filtros interativos e os 8 gráficos editáveis."""
+    def obter_filtros_laboratorio(self, df_faixas):
+        """Desenha as caixas de multiselect e slider do laboratório e retorna o dataframe filtrado em tempo real."""
         st.markdown("---")
         st.markdown("### Laboratório Analítico Interativo")
-        st.markdown("Ajuste os filtros abaixo para editar dinamicamente todos os 8 gráficos da análise simultaneamente:")
+        st.markdown("Ajuste os filtros abaixo para editar dinamicamente todos os KPIs e os 8 gráficos da análise simultaneamente:")
         
         # Filtros do Laboratório
         with st.container(border=True):
@@ -559,7 +563,10 @@ class DashboardSpotifyApp:
             (df_faixas['popularidade'] >= pop_range[0]) &
             (df_faixas['popularidade'] <= pop_range[1])
         ]
-        
+        return df_filtrado
+
+    def renderizar_visualizacoes_laboratorio(self, df_filtrado):
+        """Monta a grade de visualizações interativas com os 8 gráficos editáveis do laboratório."""
         if df_filtrado.empty:
             st.warning("Nenhuma música corresponde aos filtros selecionados. Tente selecionar outros parâmetros!")
             return
@@ -692,15 +699,28 @@ class DashboardSpotifyApp:
         # Renderiza a estrutura da página
         self.renderizar_cabecalho()
         self.renderizar_menu_navegacao()
-        self.renderizar_kpis(df_faixas)
         
-        # Fluxo condicional das abas
+        # Fluxo condicional das abas para cálculo dos KPIs e renderização
         if st.session_state.aba_selecionada == 'relatorio_mundial':
+            # KPIs com dados mundiais completos
+            self.renderizar_kpis(df_faixas, mostrar_origem=True)
             self.renderizar_relatorio(df_faixas, df_todos_generos, df_artistas, df_br)
+            
         elif st.session_state.aba_selecionada == 'relatorio_nacional':
+            # KPIs com dados nacionais pré-filtrados (Sertanejo, Funk, Samba, Pagode, Forró e MPB)
+            df_nacional = df_faixas[df_faixas['genero'].isin(['sertanejo', 'forro', 'samba', 'pagode', 'mpb', 'funk'])].copy()
+            self.renderizar_kpis(df_nacional, mostrar_origem=True)
             self.renderizar_relatorio_nacional(df_faixas, df_br)
-        else:
-            self.renderizar_laboratorio(df_faixas)
+            
+        else: # Aba Laboratório
+            # 1. Desenha os filtros e obtém os dados filtrados em tempo real
+            df_filtrado = self.obter_filtros_laboratorio(df_faixas)
+            
+            # 2. Desenha os KPIs baseados no filtro (sem repetir a origem do Kaggle)
+            self.renderizar_kpis(df_filtrado, mostrar_origem=False)
+            
+            # 3. Desenha os 8 gráficos dinâmicos editáveis
+            self.renderizar_visualizacoes_laboratorio(df_filtrado)
 
 if __name__ == "__main__":
     # Inicializa e executa a aplicação
