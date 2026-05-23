@@ -35,23 +35,21 @@ class DashboardSpotifyApp:
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             }
             
-            /* Configuração dos contêineres/cards de gráficos e KPIs com gradiente e luz interna */
+            /* Configuração dos contêineres/cards de gráficos e KPIs */
             div[data-testid="stContainer"] {
-                background: linear-gradient(135deg, #11141e 0%, #161a29 100%) !important;
-                border: 1px solid rgba(30, 215, 96, 0.12) !important;
-                border-radius: 16px !important;
-                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(30, 215, 96, 0.04) !important;
-                padding: 24px !important;
-                backdrop-filter: blur(8px) !important;
-                -webkit-backdrop-filter: blur(8px) !important;
-                transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+                background-color: #11141e !important;
+                border: 1px solid rgba(30, 215, 96, 0.2) !important;
+                border-radius: 12px !important;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 10px rgba(30, 215, 96, 0.08) !important;
+                padding: 20px !important;
+                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             }
             
-            /* Efeito hover setup gamer com glow verde neon difuso e leve elevação */
+            /* Efeito hover moderno estilo setup gamer com glow verde neon */
             div[data-testid="stContainer"]:hover {
-                border-color: rgba(30, 215, 96, 0.6) !important;
-                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(30, 215, 96, 0.25), inset 0 0 8px rgba(30, 215, 96, 0.1) !important;
-                transform: translateY(-4px);
+                border-color: rgba(30, 215, 96, 0.7) !important;
+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(30, 215, 96, 0.3) !important;
+                transform: translateY(-3px);
             }
             
             /* Customização de cabeçalhos e títulos */
@@ -64,15 +62,15 @@ class DashboardSpotifyApp:
             /* Destaque para subheaders de insights */
             h3 {
                 color: #1ed760 !important;
-                text-shadow: 0 0 12px rgba(30, 215, 96, 0.3) !important;
+                text-shadow: 0 0 8px rgba(30, 215, 96, 0.2) !important;
             }
             
-            /* Estilização específica dos KPIs (Big Numbers) com glow forte */
+            /* Estilização específica dos KPIs (Big Numbers) */
             div[data-testid="stMetricValue"] {
                 color: #1ed760 !important;
                 font-weight: 900 !important;
                 font-size: 2.3rem !important;
-                text-shadow: 0 0 15px rgba(30, 215, 96, 0.6) !important;
+                text-shadow: 0 0 12px rgba(30, 215, 96, 0.5) !important;
             }
             
             div[data-testid="stMetricLabel"] {
@@ -83,26 +81,27 @@ class DashboardSpotifyApp:
                 letter-spacing: 1.5px;
             }
             
-            /* Customização dos Botões Gamer de Navegação baseada em data-testid com gradientes e sombras */
+            /* Customização dos Botões Gamer de Navegação baseada em data-testid */
             button[data-testid="baseButton-primary"] {
-                background: linear-gradient(90deg, #1ed760 0%, #1db954 100%) !important;
+                background-color: #1ed760 !important;
                 color: #0a0c10 !important;
-                border: none !important;
-                border-radius: 14px !important;
+                border: 2px solid #1ed760 !important;
+                border-radius: 12px !important;
                 padding: 20px 30px !important;
                 min-height: 80px !important;
-                box-shadow: 0 0 20px rgba(30, 215, 96, 0.45) !important;
+                box-shadow: 0 0 20px rgba(30, 215, 96, 0.5) !important;
                 text-transform: uppercase;
                 letter-spacing: 1.5px;
-                transition: all 0.3s ease-in-out !important;
+                transition: all 0.2s ease-in-out !important;
                 width: 100%;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
             }
             button[data-testid="baseButton-primary"]:hover {
-                background: linear-gradient(90deg, #1db954 0%, #1ed760 100%) !important;
-                box-shadow: 0 0 35px rgba(30, 215, 96, 0.75) !important;
+                background-color: #1DB954 !important;
+                border-color: #1DB954 !important;
+                box-shadow: 0 0 30px rgba(30, 215, 96, 0.8) !important;
                 transform: scale(1.02);
             }
             button[data-testid="baseButton-primary"] p,
@@ -113,16 +112,16 @@ class DashboardSpotifyApp:
             }
             
             button[data-testid="baseButton-secondary"] {
-                background: linear-gradient(135deg, #11141e 0%, #161a29 100%) !important;
+                background-color: #11141e !important;
                 color: #8892b0 !important;
-                border: 2px solid rgba(30, 215, 96, 0.2) !important;
-                border-radius: 14px !important;
+                border: 2px solid rgba(30, 215, 96, 0.3) !important;
+                border-radius: 12px !important;
                 padding: 20px 30px !important;
                 min-height: 80px !important;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
                 text-transform: uppercase;
                 letter-spacing: 1.5px;
-                transition: all 0.3s ease-in-out !important;
+                transition: all 0.2s ease-in-out !important;
                 width: 100%;
                 display: flex !important;
                 align-items: center !important;
@@ -130,8 +129,8 @@ class DashboardSpotifyApp:
             }
             button[data-testid="baseButton-secondary"]:hover {
                 color: #ffffff !important;
-                border-color: rgba(30, 215, 96, 0.7) !important;
-                box-shadow: 0 0 20px rgba(30, 215, 96, 0.3) !important;
+                border-color: rgba(30, 215, 96, 0.8) !important;
+                box-shadow: 0 0 20px rgba(30, 215, 96, 0.4) !important;
                 transform: scale(1.02);
             }
             button[data-testid="baseButton-secondary"] p,
@@ -143,23 +142,6 @@ class DashboardSpotifyApp:
             button[data-testid="baseButton-secondary"]:hover p,
             button[data-testid="baseButton-secondary"]:hover span {
                 color: #ffffff !important;
-            }
-            
-            /* Efeito de brilho neon (glow) nos tracados, barras e elementos graficos do Plotly */
-            .js-plotly-plot .trace path.point,
-            .js-plotly-plot .trace .bars path,
-            .js-plotly-plot .trace .scatterpts,
-            .js-plotly-plot .trace .path,
-            .js-plotly-plot .trace .violin {
-                filter: drop-shadow(0 0 5px rgba(30, 215, 96, 0.55)) !important;
-            }
-            
-            /* Efeito de brilho neon vermelho/rosa especifico para graficos melancolicos */
-            .js-plotly-plot .tracepath[style*="rgb(220, 53, 69)"],
-            .js-plotly-plot .tracepath[style*="red"],
-            .js-plotly-plot .trace .bars path[style*="rgb(220, 53, 69)"],
-            .js-plotly-plot .trace .bars path[style*="red"] {
-                filter: drop-shadow(0 0 6px rgba(255, 0, 85, 0.6)) !important;
             }
             
             /* Estilização da barra de rolagem */
