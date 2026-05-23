@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Caches
+.cache
+.cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Dados e Bancos (Para manter o repositório leve)
+data/raw/
+*.db
+*.sqlite
+*.sqlite3
+
+# Configurações e Credenciais locais
+.env
+.env.*
+secrets.toml

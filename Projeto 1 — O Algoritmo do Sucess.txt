@@ -1,0 +1,314 @@
+# Projeto 1 — O Algoritmo do Sucesso Musical
+*O que faz uma música virar hit no Brasil? · Python · SQL · Power BI*
+
+---
+
+## Fase 1 — Definição e coleta de dados (Semana 1)
+
+**1. Definir a pergunta central**
+
+Antes de tocar em qualquer dado, escreva num documento (pode ser o próprio README) as perguntas que o projeto vai responder. Sugestões:
+
+- Quais atributos de áudio (energia, dançabilidade, BPM) são mais comuns nos hits brasileiros?
+- O estilo musical dos hits mudou ao longo dos anos?
+- Funk, sertanejo e pop internacional têm "DNA sonoro" diferente?
+- Dá pra prever se uma música vai entrar no top 10?
+
+Ter isso escrito antes evita que você se perca nos dados depois.
+
+**2. Levantar as fontes de dados**
+
+Você vai usar duas fontes combinadas:
+
+- **Spotify Charts Brasil** — histórico semanal de top 200 músicas. Baixe em `charts.spotify.com` ou use datasets prontos no Kaggle (busque por "Spotify Brazil Charts"). Formato CSV com colunas: posição, nome da música, artista, streams, data.
+- **API do Spotify** — para buscar os atributos de áudio de cada faixa (energia, dançabilidade, valência, acousticness, BPM, loudness etc.). Crie uma conta de desenvolvedor gratuita em `developer.spotify.com` e registre um app para obter `client_id` e `client_secret`.
+
+**3. Coletar os dados com Python**
+
+Instale as bibliotecas necessárias:
+```
+pip install spotipy pandas requests
+```
+
+Fluxo de coleta:
+- Carregue os CSVs do Spotify Charts com `pd.read_csv()`
+- Extraia os `track_id` de cada música (presente na URL do Spotify ou no CSV)
+- Use a biblioteca `spotipy` para chamar o endpoint `audio_features` em lote (aceita até 100 IDs por chamada)
+- Salve o resultado combinado em um CSV limpo: `tracks_raw.csv`
+
+Dica: faça a coleta em lotes e salve checkpoints, porque a API tem limite de requisições por minuto.
+
+---
+
+## Fase 2 — Modelagem e limpeza com SQL (Semana 1–2)
+
+**4. Modelar o banco de dados**
+
+Crie um banco SQLite (simples, sem instalar servidor) ou PostgreSQL. Estrutura de tabelas sugerida:
+
+```sql
+CREATE TABLE artistas (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    genero TEXT
+);
+
+CREATE TABLE faixas (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    artista_id TEXT REFERENCES artistas(id),
+    duracao_ms INTEGER,
+    ano_lancamento INTEGER
+);
+
+CREATE TABLE atributos_audio (
+    faixa_id TEXT PRIMARY KEY REFERENCES faixas(id),
+    danceability REAL,
+    energy REAL,
+    valence REAL,
+    tempo REAL,
+    acousticness REAL,
+    loudness REAL
+);
+
+CREATE TABLE rankings (
+    id SERIAL PRIMARY KEY,
+    faixa_id TEXT REFERENCES faixas(id),
+    posicao INTEGER,
+    streams BIGINT,
+    semana DATE
+);
+```
+
+Carregue os CSVs nas tabelas com `pandas + SQLAlchemy`:
+```python
+from sqlalchemy import create_engine
+engine = create_engine('sqlite:///spotify_brasil.db')
+df.to_sql('rankings', engine, if_exists='append', index=False)
+```
+
+**5. Limpar e tratar os dados**
+
+Problemas comuns que você vai encontrar e como resolver:
+
+```sql
+-- Remover duplicatas (mesma música na mesma semana)
+DELETE FROM rankings
+WHERE id NOT IN (
+    SELECT MIN(id) FROM rankings
+    GROUP BY faixa_id, semana
+);
+
+-- Verificar nulos nos atributos de áudio
+SELECT COUNT(*) FROM atributos_audio WHERE energy IS NULL;
+
+-- Padronizar nomes de artistas com variações de grafia
+UPDATE artistas SET nome = 'Mc Ryan SP' WHERE nome ILIKE '%ryan sp%';
+```
+
+No Python, trate os outliers antes de carregar:
+```python
+# Remover músicas com menos de 1000 streams (ruído)
+df = df[df['streams'] > 1000]
+
+# Converter semana para datetime
+df['semana'] = pd.to_datetime(df['semana'])
+```
+
+**6. Criar queries analíticas**
+
+Escreva e salve essas queries na pasta `/sql` do repositório — elas ficam visíveis no GitHub e mostram seu domínio de SQL:
+
+```sql
+-- Top 10 artistas por semanas no chart
+SELECT a.nome, COUNT(DISTINCT r.semana) AS semanas_no_chart
+FROM rankings r
+JOIN faixas f ON r.faixa_id = f.id
+JOIN artistas a ON f.artista_id = a.id
+WHERE r.posicao <= 50
+GROUP BY a.nome
+ORDER BY semanas_no_chart DESC
+LIMIT 10;
+
+-- Média dos atributos de áudio por ano
+SELECT f.ano_lancamento,
+       ROUND(AVG(au.energy), 3) AS energia_media,
+       ROUND(AVG(au.danceability), 3) AS danca_media,
+       ROUND(AVG(au.tempo), 1) AS bpm_medio
+FROM rankings r
+JOIN faixas f ON r.faixa_id = f.id
+JOIN atributos_audio au ON f.id = au.faixa_id
+GROUP BY f.ano_lancamento
+ORDER BY f.ano_lancamento;
+```
+
+---
+
+## Fase 3 — Análise exploratória em Python (Semana 2)
+
+**7. EDA no Jupyter Notebook**
+
+Estruture o notebook em seções claras com células Markdown explicando cada bloco — isso é o que o recrutador vai ler:
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sqlalchemy import create_engine
+
+engine = create_engine('sqlite:///spotify_brasil.db')
+df = pd.read_sql('SELECT * FROM vw_tracks_full', engine)
+
+# Distribuição de energia dos hits vs. não-hits
+sns.histplot(data=df, x='energy', hue='top10', bins=30, kde=True)
+plt.title('Distribuição de energia: top 10 vs. resto')
+
+# Correlação entre atributos de áudio e posição no ranking
+corr = df[['posicao','energy','danceability','valence','tempo']].corr()
+sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm')
+
+# Evolução do BPM médio ao longo dos anos
+df.groupby('ano')['tempo'].mean().plot(marker='o')
+plt.title('BPM médio dos hits brasileiros por ano')
+```
+
+Perguntas para investigar e incluir no notebook:
+- As músicas de verão são mais energéticas?
+- Funk tem danceability mais alta que sertanejo?
+- A valência (alegria) dos hits caiu nos últimos anos?
+
+**8. Modelo preditivo simples**
+
+Crie uma coluna target: `top10 = 1` se a música chegou ao top 10, `0` caso contrário.
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+features = ['energy','danceability','valence','tempo','acousticness','loudness']
+X = df[features]
+y = df['top10']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+print(classification_report(y_test, model.predict(X_test)))
+
+# Mostrar quais atributos mais influenciam
+importances = pd.Series(model.feature_importances_, index=features).sort_values()
+importances.plot(kind='barh', title='Feature importance — o que faz um hit?')
+```
+
+Não precisa ter acurácia perfeita — o que importa é a narrativa. O gráfico de feature importance sozinho já é um insight poderoso para o portfólio.
+
+---
+
+## Fase 4 — Dashboard no Power BI (Semana 3)
+
+**9. Preparar os dados para o Power BI**
+
+Exporte as views analíticas do SQL como CSVs — o Power BI vai consumir esses arquivos:
+
+```python
+queries = {
+    'rankings_por_semana': 'SELECT * FROM vw_rankings_semanais',
+    'atributos_medios_por_genero': 'SELECT * FROM vw_atributos_genero',
+    'top_artistas': 'SELECT * FROM vw_top_artistas'
+}
+for nome, query in queries.items():
+    pd.read_sql(query, engine).to_csv(f'data/processed/{nome}.csv', index=False)
+```
+
+**10. Estrutura do dashboard (3 páginas)**
+
+Página 1 — Visão geral do mercado:
+- Cartões de KPI: total de músicas analisadas, período coberto, artista com mais semanas no top 50
+- Gráfico de barras: top 10 artistas por streams totais
+- Linha do tempo: posição das top 5 músicas semana a semana (gráfico de linha)
+- Filtros: ano, gênero
+
+Página 2 — DNA do hit:
+- Gráfico de radar (spider chart) comparando atributos médios de hits vs. não-hits
+- Scatter plot: danceability × energy, com cor indicando se entrou no top 10
+- Tabela: as 10 músicas com maior combinação de energia + dançabilidade
+
+Página 3 — Batalha dos gêneros:
+- Gráfico de barras agrupadas: funk vs. sertanejo vs. pop internacional por atributo
+- Mapa de calor: presença de cada gênero no chart por mês/ano
+- Cartão de destaque: "gênero dominante de 2023"
+
+**11. Boas práticas no Power BI**
+
+- Use um tema de cores consistente (pode criar um JSON de tema customizado)
+- Nomeie todas as medidas DAX de forma descritiva: `Média Streams Top 10` em vez de `Medida1`
+- Exemplo de medida DAX útil:
+```
+Semanas no Top 10 =
+CALCULATE(
+    COUNTROWS(rankings),
+    rankings[posicao] <= 10
+)
+```
+- Publique pelo Power BI Service e gere link de acesso público em "Publicar na Web"
+
+---
+
+## Fase 5 — Publicação (Semana 3–4)
+
+**12. Estrutura do repositório no GitHub**
+
+```
+spotify-hits-brasil/
+├── README.md
+├── data/
+│   ├── raw/           ← CSVs originais (ou .gitignore se forem grandes)
+│   └── processed/     ← CSVs limpos exportados do SQL
+├── notebooks/
+│   └── 01_eda_hits_brasil.ipynb
+├── sql/
+│   ├── schema.sql     ← criação das tabelas
+│   ├── cleaning.sql   ← queries de limpeza
+│   └── analytics.sql  ← queries analíticas
+├── dashboard/
+│   └── spotify_brasil.pbix
+└── requirements.txt
+```
+
+**13. Estrutura do README**
+
+O README é o que o recrutador lê primeiro. Estrutura sugerida:
+
+```
+## Contexto
+Por que esse tema é relevante?
+
+## Perguntas respondidas
+- Pergunta 1
+- Pergunta 2
+
+## Fontes de dados
+Links para os datasets usados.
+
+## Metodologia
+Resumo do pipeline: coleta → SQL → EDA → modelo → dashboard.
+
+## Principais insights
+1. Músicas com danceability acima de 0.7 têm X% mais chance de entrar no top 10
+2. O BPM médio dos hits caiu de 130 para 105 entre 2018 e 2023
+3. Funk domina o chart no verão; sertanejo domina no resto do ano
+
+## Como rodar o projeto
+Instruções para instalar dependências e executar os notebooks.
+
+## Dashboard
+Link do Power BI Service.
+```
+
+**14. Post no LinkedIn**
+
+Formato que funciona bem: comece com um insight surpreendente, mostre um screenshot do dashboard, liste 3 descobertas em tópicos curtos, e termine com o link do GitHub. Marque hashtags como #DataAnalytics #Python #PowerBI #Dados.
+
+---

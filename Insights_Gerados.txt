@@ -1,0 +1,74 @@
+=============================================================
+ RELATÓRIO DE INSIGHTS - O ALGORITMO DO SUCESSO MUSICAL
+=============================================================
+Este documento detalha as principais descobertas do projeto, a origem dos dados usados e a conclusão analítica (Insight) gerada a partir deles.
+
+-------------------------------------------------------------
+INSIGHT 1: O "DNA Sonoro" muda drasticamente por Gênero
+-------------------------------------------------------------
+* DADO DE ORIGEM: 
+Tabelas `faixas` e `atributos_audio` (média de Dançabilidade e Energia agrupadas por gênero).
+* O DADO MOSTRA: 
+"Hip-hop" atingiu a maior média de Dançabilidade (0.730), e "Funk" (0.692). "Sertanejo" e "Rock" lideram em Energia (acima de 0.640).
+* ANÁLISE: 
+O sucesso depende do nicho. Gêneros urbanos focam na batida rítmica (dançabilidade). Gêneros orgânicos focam na intensidade vocal/instrumental (energia).
+
+-------------------------------------------------------------
+INSIGHT 2: Mega Hits são estatisticamente mais animados
+-------------------------------------------------------------
+* DADO DE ORIGEM: 
+Agrupamento de músicas por "Categorias de Popularidade".
+* O DADO MOSTRA: 
+Músicas comuns têm Dançabilidade ao redor de 0.55. Mega Hits (Popularidade > 80) saltam para 0.65 em Dançabilidade e 0.66 em Energia. 
+* ANÁLISE: 
+O gosto das massas prefere esmagadoramente músicas "upbeat" (feitas para rádio/festas).
+
+-------------------------------------------------------------
+INSIGHT 3: Dançabilidade é a métrica número 1
+-------------------------------------------------------------
+* DADO DE ORIGEM: 
+Modelo RandomForestClassifier (Machine Learning).
+* O DADO MOSTRA: 
+A barra de "Dançabilidade" obteve o maior peso (importância relativa) para a IA adivinhar se a música era um hit.
+* ANÁLISE: 
+Loudness (Volume) ou BPM não são suficientes se a música não tiver o "groove".
+
+-------------------------------------------------------------
+INSIGHT 4: A "Loudness War" (Guerra do Volume) é Real
+-------------------------------------------------------------
+* DADO DE ORIGEM: 
+Comparação da média de Volume (Loudness) entre Hits (Pop >= 70) e Resto (Pop < 70).
+* O DADO MOSTRA: 
+Os Hits tocam, em média, a -6.7 dB. As músicas não-populares tocam bem mais baixo, a -8.5 dB.
+* ANÁLISE: 
+A indústria musical realmente empurra o volume das masterizações para o limite máximo na esperança de captar a atenção rápida do ouvinte. Músicas mais altas estatisticamente perfomam melhor nas paradas.
+
+-------------------------------------------------------------
+INSIGHT 5: O Mainstream "matou" o Acústico
+-------------------------------------------------------------
+* DADO DE ORIGEM: 
+Comparação da média de `acousticness`.
+* O DADO MOSTRA: 
+Músicas normais têm índice acústico de 0.33. Já os Hits caem drasticamente para 0.22.
+* ANÁLISE: 
+Músicas "voz e violão" (altamente acústicas) têm enorme dificuldade de viralizar no cenário pop atual, que é dominado por sintetizadores e produções digitais.
+
+-------------------------------------------------------------
+INSIGHT 6: Existe sucesso para músicas "Tristes"?
+-------------------------------------------------------------
+* DADO DE ORIGEM: 
+Filtro de faixas com Valência muito baixa (< 0.4) mas Popularidade de Hit (>= 70).
+* O DADO MOSTRA: 
+Existem sim! Os gêneros que mais conseguem emplacar "músicas tristes de sucesso" são o Alt-Rock, seguido de Dance e Electro.
+* ANÁLISE: 
+Se o produtor quiser lançar uma música melancólica, o caminho mais seguro é ir pela rota do Rock Alternativo ou Eletrônica "Indie", que possuem um público fiel que consome valências baixas.
+
+-------------------------------------------------------------
+INSIGHT 7: Artistas de Elite (O efeito Bad Bunny)
+-------------------------------------------------------------
+* DADO DE ORIGEM: 
+Agrupamento de popularidade média por artista (mínimo de 5 faixas).
+* O DADO MOSTRA: 
+Olivia Rodrigo tem uma média incrível (87.4), mas com poucas músicas. O destaque absoluto é **Bad Bunny**, que consegue sustentar uma média assustadora de 85.3 pontos de popularidade com um catálogo denso de 22 faixas analisadas.
+* ANÁLISE: 
+Uma coisa é ter o fenômeno de "One-Hit Wonder" (artista de um sucesso só). Outra coisa é a consistência absurda de engajamento que alguns artistas latinos e pop (como Bad Bunny) exercem no algoritmo do Spotify, garantindo que quase todas as suas faixas cruzem o limiar de sucesso absoluto.

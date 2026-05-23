@@ -1,0 +1,31 @@
+=================================================
+ GUIA DE ESTUDOS - O ALGORITMO DO SUCESSO MUSICAL
+=================================================
+Este arquivo documenta o passo a passo, as decisões técnicas e os aprendizados de cada fase do nosso projeto de Análise de Dados.
+
+--- FASE 1: Coleta de Dados ---
+Objetivo: Extrair informações musicais.
+Aprendizado: O plano original era usar a API do Spotify, mas ela bloqueou o endpoint "Audio Features" em 2024. Resolvemos esse obstáculo como Analistas reais fariam: consumindo um grande Dataset externo (114 mil faixas) já limpo do histórico. Baixamos o arquivo via Python (Pandas).
+
+--- FASE 2: Modelagem e Limpeza com SQL ---
+Objetivo: Armazenar os dados de forma profissional.
+Aprendizado: Ao invés de uma tabela gigantesca, criamos uma arquitetura relacional clássica (Artistas > Faixas > Atributos) no banco SQLite. Quando o SQL barrou os dados por "NOT NULL constraint", voltamos ao código Python e limpamos as músicas em branco usando a função `dropna()`. Injetamos os dados rapidamente com a biblioteca SQLAlchemy.
+
+--- FASE 3: Consultas Analíticas (Queries) e EDA ---
+Objetivo: Fazer perguntas inteligentes aos dados.
+Aprendizado: Usamos recursos avançados de SQL (como AVG, GROUP BY e a condicional CASE WHEN) para criar "Categorias" de Popularidade e cruzar com os dados sonoros. Confirmamos via Machine Learning (Random Forest da Scikit-Learn) que a "Dançabilidade" tem o maior peso na predição de um Hit.
+
+--- FASE 4: O "Falso Final" do Power BI ---
+Objetivo: Criar visualizações.
+Aprendizado: Chegamos a escrever o script `06_exportar_powerbi.py` gerando arquivos CSV para o Power BI. Porém, percebemos que um projeto desse porte pedia uma tecnologia mais moderna e integrada ao código, nos levando a refinar ainda mais nossa abordagem.
+
+--- FASE 5: Refinamento de Dados e Agrupamento de Gêneros ---
+Objetivo: Eliminar a fragmentação excessiva de categorias nos gráficos.
+Aprendizado: Percebemos que micro-gêneros como "chicago-house", "detroit-techno" e "minimal-techno" dispersavam as métricas e poluíam os gráficos. Em vez de criar tabelas duplicadas ou complicar as visualizações com filtros manuais, executamos uma limpeza definitiva diretamente no banco de dados SQLite (`09_limpeza_generos.py`) usando comandos `UPDATE` para unificar esses registros em macro-gêneros ("techno/house", "latin", "kids"). Isso simplificou a leitura dos dados e melhorou a performance das agregações de negócios.
+
+--- FASE 6: A Evolução (Dashboard Web Interativo) ---
+Objetivo: Entregar um verdadeiro "Software de Análise".
+Aprendizado: Abandonamos os gráficos estáticos do `matplotlib` e a dependência do Power BI. Implementamos o aplicativo web usando Streamlit e Plotly (`08_dashboard_interativo.py`). No topo do painel, indicamos a procedência dos dados com link direto para a fonte no Kaggle, reforçando a transparência e integridade do projeto de portfólio. Criamos cartões modernos de KPIs (Big Numbers) que exibem de imediato o volume de informações processadas (total de músicas, gêneros, artistas e músicas populares). Aplicamos a estilização personalizada **Cyberpunk Spotify** injetando regras CSS customizadas (fundo grafite gamer escuro, tipografias limpas, realce das métricas em verde neon com text-shadow e efeitos de micro-animação hover nos cartões com brilho/glow verde). Configuramos também o template `plotly_dark` em todos os gráficos do Plotly e removemos suas margens brancas padrão, integrando os plots perfeitamente aos contêineres de dados. Adotamos o design de Data Storytelling linear em duas colunas, com explicações (Legendas > Dado Explicação > Insight) estilizadas com HTML e cores suaves em cards. Ajustamos o tom para divulgação ao público geral. Organizamos a interface em duas abas de topo de fácil acesso: a primeira abriga o relatório linear de insights completo com o Destaque Brasileiro, e a segunda reúne o Laboratório de Exploração Interativo com filtros internos no cabeçalho e todos os 8 gráficos da análise 100% dinâmicos e editáveis em tempo real.
+
+=================================================
+CONCLUSÃO DO PROJETO: Repositório GitHub Finalizado e Pronto para Divulgação!

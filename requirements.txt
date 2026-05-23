@@ -1,0 +1,5 @@
+spotipy
+pandas
+requests
+python-dotenv
+sqlalchemy
