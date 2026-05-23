@@ -18,7 +18,7 @@ A industria da musica e altamente competitiva. Milhares de faixas sao lancadas d
 3. Qualidade de Dados (ETL): Tratamento de valores nulos (dados corrompidos) e injecao de dados usando SQLAlchemy no banco.
 4. Machine Learning: Uso do algoritmo preditivo RandomForestClassifier para determinar quais caracteristicas de audio sao mais decisivas para o sucesso de uma faixa.
 5. Limpeza e Agrupamento de Generos: Classe Python executando atualizacoes SQL para consolidar micro-generos redundantes (como chicago-house, detroit-techno, latino, reggaeton, children) em macro-generos mais consistentes (techno/house, latin, kids).
-6. Dashboard Interativo (Web App): Aplicacao web estruturada em POO com Streamlit e Plotly sob um visual gamer escuro com realces neon verde e azul. A navegacao permite alternar entre o Relatorio de Insights e o Laboratorio de Exploracao.
+6. Dashboard Interativo (Web App): Aplicacao web estruturada em POO com Streamlit e Plotly sob um visual gamer escuro com realces neon verde e azul. A navegacao proeminente permite alternar entre o Relatorio Mundial, o Relatorio Nacional e o Laboratorio de Exploracao.
 
 ## Principais Insights do Mercado Musical
 1. O DNA Sonoro por Genero: Generos urbanos (Hip-hop e Funk) lideram em dancabilidade, enquanto generos instrumentais/organicos (Sertanejo e Rock) dependem mais da energia e intensidade.
@@ -28,7 +28,12 @@ A industria da musica e altamente competitiva. Milhares de faixas sao lancadas d
 5. A Morte do Acustico no Mainstream: O indice de som acustico despenca de 0.33 em musicas comuns para apenas 0.22 em musicas de sucesso, consolidando o dominio de producoes sintetizadas digitais.
 6. O Nicho da Tristeza Pop: Musicas melancolicas (baixo indice de alegria/valencia) encontram barreira para estourar, a menos que sigam o canal estrategico de generos com publico receptivo a isso, como Alt-Rock e Indie-Pop.
 7. Artistas de Elite e Catalogo (O Efeito Bad Bunny): A consistencia de alguns artistas de ponta, como Bad Bunny (media de popularidade de 85.3 com 22 faixas), demonstra que o proprio algoritmo do Spotify age como catalisador de entrega continua para catalogos consolidados.
-8. Destaque Nacional (O DNA da Musica Brasileira): O Funk se consolidou como o ritmo mais dancante (0.69) e sintetizado/digital (baixo acustico de 0.32), enquanto o Forró e o Sertanejo registram as maiores intensidades energicas (acima de 0.70). Pagode e Samba preservam sua tradicional instrumentacao organica, registrando os maiores indices acusticos (acima de 0.48).
+
+## O Relatorio Nacional de Insights
+A segunda aba do dashboard e inteiramente dedicada ao cenario da musica brasileira, trazendo uma analise com 3 insights focados nos generos nacionais (Sertanejo, Funk, Forro, Samba, Pagode e MPB):
+* DNA Sonoro da Musica Brasileira: Grafico comparando dancabilidade, energia e nivel acustico, demonstrando o apelo sintetizado e fisico de Funk e Forro contra o carater organico e instrumental do Samba, Pagode e MPB.
+* A Velocidade e Pulsacao do Ritmo (BPM): Grafico de Boxplot comparando a velocidade em BPM, ilustrando o dinamismo e rapidez acelerada do Forro e do Funk contra o andamento moderado e relaxante da MPB e do Samba.
+* Tracao Comercial e Popularidade Media: Grafico de barras horizontais demonstrando a aceitacao media de cada genero nacional nas playlists, destacando a lideranca comercial do Sertanejo e do Funk no streaming.
 
 ## O Laboratorio de Exploracao Interativo
 O projeto conta com um Laboratorio Analitico dinamico para que o usuario execute suas proprias investigacoes nos dados musicais do Spotify. Nele, e possivel:

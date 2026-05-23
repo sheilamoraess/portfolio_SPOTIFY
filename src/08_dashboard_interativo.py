@@ -22,7 +22,7 @@ class DashboardSpotifyApp:
     def inicializar_estado(self):
         """Inicializa as variáveis de controle do estado da sessão do Streamlit."""
         if 'aba_selecionada' not in st.session_state:
-            st.session_state.aba_selecionada = 'relatorio'
+            st.session_state.aba_selecionada = 'relatorio_mundial'
 
     def injetar_css(self):
         """Injeta a estilização customizada no formato Cyberpunk / Setup Gamer."""
@@ -35,21 +35,23 @@ class DashboardSpotifyApp:
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             }
             
-            /* Configuração dos contêineres/cards de gráficos e KPIs */
+            /* Configuração dos contêineres/cards de gráficos e KPIs com gradiente e luz interna */
             div[data-testid="stContainer"] {
-                background-color: #11141e !important;
-                border: 1px solid rgba(30, 215, 96, 0.2) !important;
-                border-radius: 12px !important;
-                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 10px rgba(30, 215, 96, 0.08) !important;
-                padding: 20px !important;
-                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                background: linear-gradient(135deg, #11141e 0%, #161a29 100%) !important;
+                border: 1px solid rgba(30, 215, 96, 0.12) !important;
+                border-radius: 16px !important;
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(30, 215, 96, 0.04) !important;
+                padding: 24px !important;
+                backdrop-filter: blur(8px) !important;
+                -webkit-backdrop-filter: blur(8px) !important;
+                transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             }
             
-            /* Efeito hover moderno estilo setup gamer com glow verde neon */
+            /* Efeito hover setup gamer com glow verde neon difuso e leve elevação */
             div[data-testid="stContainer"]:hover {
-                border-color: rgba(30, 215, 96, 0.7) !important;
-                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(30, 215, 96, 0.3) !important;
-                transform: translateY(-3px);
+                border-color: rgba(30, 215, 96, 0.6) !important;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(30, 215, 96, 0.25), inset 0 0 8px rgba(30, 215, 96, 0.1) !important;
+                transform: translateY(-4px);
             }
             
             /* Customização de cabeçalhos e títulos */
@@ -62,15 +64,15 @@ class DashboardSpotifyApp:
             /* Destaque para subheaders de insights */
             h3 {
                 color: #1ed760 !important;
-                text-shadow: 0 0 8px rgba(30, 215, 96, 0.2) !important;
+                text-shadow: 0 0 12px rgba(30, 215, 96, 0.3) !important;
             }
             
-            /* Estilização específica dos KPIs (Big Numbers) */
+            /* Estilização específica dos KPIs (Big Numbers) com glow forte */
             div[data-testid="stMetricValue"] {
                 color: #1ed760 !important;
                 font-weight: 900 !important;
                 font-size: 2.3rem !important;
-                text-shadow: 0 0 12px rgba(30, 215, 96, 0.5) !important;
+                text-shadow: 0 0 15px rgba(30, 215, 96, 0.6) !important;
             }
             
             div[data-testid="stMetricLabel"] {
@@ -81,27 +83,26 @@ class DashboardSpotifyApp:
                 letter-spacing: 1.5px;
             }
             
-            /* Customização dos Botões Gamer de Navegação baseada em data-testid */
+            /* Customização dos Botões Gamer de Navegação baseada em data-testid com gradientes e sombras */
             button[data-testid="baseButton-primary"] {
-                background-color: #1ed760 !important;
+                background: linear-gradient(90deg, #1ed760 0%, #1db954 100%) !important;
                 color: #0a0c10 !important;
-                border: 2px solid #1ed760 !important;
-                border-radius: 12px !important;
+                border: none !important;
+                border-radius: 14px !important;
                 padding: 20px 30px !important;
                 min-height: 80px !important;
-                box-shadow: 0 0 20px rgba(30, 215, 96, 0.5) !important;
+                box-shadow: 0 0 20px rgba(30, 215, 96, 0.45) !important;
                 text-transform: uppercase;
                 letter-spacing: 1.5px;
-                transition: all 0.2s ease-in-out !important;
+                transition: all 0.3s ease-in-out !important;
                 width: 100%;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
             }
             button[data-testid="baseButton-primary"]:hover {
-                background-color: #1DB954 !important;
-                border-color: #1DB954 !important;
-                box-shadow: 0 0 30px rgba(30, 215, 96, 0.8) !important;
+                background: linear-gradient(90deg, #1db954 0%, #1ed760 100%) !important;
+                box-shadow: 0 0 35px rgba(30, 215, 96, 0.75) !important;
                 transform: scale(1.02);
             }
             button[data-testid="baseButton-primary"] p,
@@ -112,16 +113,16 @@ class DashboardSpotifyApp:
             }
             
             button[data-testid="baseButton-secondary"] {
-                background-color: #11141e !important;
+                background: linear-gradient(135deg, #11141e 0%, #161a29 100%) !important;
                 color: #8892b0 !important;
-                border: 2px solid rgba(30, 215, 96, 0.3) !important;
-                border-radius: 12px !important;
+                border: 2px solid rgba(30, 215, 96, 0.2) !important;
+                border-radius: 14px !important;
                 padding: 20px 30px !important;
                 min-height: 80px !important;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
                 text-transform: uppercase;
                 letter-spacing: 1.5px;
-                transition: all 0.2s ease-in-out !important;
+                transition: all 0.3s ease-in-out !important;
                 width: 100%;
                 display: flex !important;
                 align-items: center !important;
@@ -129,8 +130,8 @@ class DashboardSpotifyApp:
             }
             button[data-testid="baseButton-secondary"]:hover {
                 color: #ffffff !important;
-                border-color: rgba(30, 215, 96, 0.8) !important;
-                box-shadow: 0 0 20px rgba(30, 215, 96, 0.4) !important;
+                border-color: rgba(30, 215, 96, 0.7) !important;
+                box-shadow: 0 0 20px rgba(30, 215, 96, 0.3) !important;
                 transform: scale(1.02);
             }
             button[data-testid="baseButton-secondary"] p,
@@ -240,13 +241,17 @@ class DashboardSpotifyApp:
         st.markdown("Uma investigação profunda do DNA sonoro por trás dos maiores hits do Spotify através de dados e machine learning.")
 
     def renderizar_menu_navegacao(self):
-        """Gera os dois botões destacados de seleção entre relatório e laboratório."""
-        col_b1, col_b2 = st.columns(2)
+        """Gera os três botões destacados de seleção entre Relatório Mundial, Relatório Nacional e Laboratório."""
+        col_b1, col_b2, col_b3 = st.columns(3)
         with col_b1:
-            if st.button("RELATÓRIO DE INSIGHTS", use_container_width=True, type="primary" if st.session_state.aba_selecionada == 'relatorio' else "secondary"):
-                st.session_state.aba_selecionada = 'relatorio'
+            if st.button("RELATÓRIO MUNDIAL", use_container_width=True, type="primary" if st.session_state.aba_selecionada == 'relatorio_mundial' else "secondary"):
+                st.session_state.aba_selecionada = 'relatorio_mundial'
                 st.rerun()
         with col_b2:
+            if st.button("RELATÓRIO NACIONAL", use_container_width=True, type="primary" if st.session_state.aba_selecionada == 'relatorio_nacional' else "secondary"):
+                st.session_state.aba_selecionada = 'relatorio_nacional'
+                st.rerun()
+        with col_b3:
             if st.button("LABORATÓRIO DE EXPLORAÇÃO", use_container_width=True, type="primary" if st.session_state.aba_selecionada == 'laboratorio' else "secondary"):
                 st.session_state.aba_selecionada = 'laboratorio'
                 st.rerun()
@@ -277,10 +282,10 @@ class DashboardSpotifyApp:
                 st.metric(label="Faixas de Sucesso (Pop >= 70)", value=f"{total_hits:,}".replace(",", "."))
 
     def renderizar_relatorio(self, df_faixas, df_todos_generos, df_artistas, df_br):
-        """Monta o relatório analítico estruturado de Insights em duas colunas paralelas."""
+        """Monta o relatório analítico estruturado de Insights Globais em duas colunas paralelas."""
         st.markdown("---")
-        st.markdown("### Histórias e Curiosidades do Mercado Musical")
-        st.markdown("Explore abaixo a análise sequencial das características sonoras que definem as tendências globais e brasileiras:")
+        st.markdown("### Histórias e Curiosidades do Mercado Musical Global")
+        st.markdown("Explore abaixo a análise sequencial das características sonoras que definem as tendências mundiais:")
 
         # --- INSIGHT 1 ---
         st.markdown("---")
@@ -445,29 +450,85 @@ class DashboardSpotifyApp:
                 insight_7 = "A popularidade consistente de artistas consagrados sugere um efeito de arrasto: catálogos consolidados geram engajamento contínuo, fazendo com que novos lançamentos desses artistas já iniciem com grande vantagem de recomendação."
                 st.markdown(f"<div style='{self.estilo_insight}'><strong>Insight:</strong><br>{insight_7}</div>", unsafe_allow_html=True)
 
-        # --- DESTAQUE NACIONAL ---
+    def renderizar_relatorio_nacional(self, df_faixas, df_br):
+        """Monta o relatório analítico estruturado de Insights Nacionais dedicados à música brasileira."""
         st.markdown("---")
-        st.subheader("Destaque Nacional: O DNA da Música Brasileira")
-        col8_1, col8_2 = st.columns([1.1, 0.9])
-        with col8_1:
+        st.markdown("### Relatório Especial: O DNA da Música Brasileira")
+        st.markdown("Explore abaixo a análise exclusiva dos ritmos nacionais e as particularidades técnicas que definem o cenário nacional:")
+
+        # --- INSIGHT NACIONAL 1: COMPARAÇÃO SONORA ---
+        st.markdown("---")
+        st.subheader("1. O Comportamento Sonoro dos Ritmos Brasileiros")
+        col_br1_1, col_br1_2 = st.columns([1.1, 0.9])
+        with col_br1_1:
             with st.container(border=True):
                 df_br_melt = df_br.melt(id_vars='genero', var_name='Atributo', value_name='Média')
                 df_br_melt['Atributo'] = df_br_melt['Atributo'].map({'dance': 'Dançabilidade', 'energia': 'Energia', 'acustico': 'Acústico'})
+                # Formatar nomes dos gêneros para exibição no gráfico
+                mapa_nomes = {'sertanejo': 'Sertanejo', 'forro': 'Forró', 'samba': 'Samba', 'pagode': 'Pagode', 'mpb': 'MPB', 'funk': 'Funk'}
+                df_br_melt['genero_formatado'] = df_br_melt['genero'].map(mapa_nomes)
                 fig_br = px.bar(
-                    df_br_melt, x="genero", y="Média", color="Atributo", barmode="group",
+                    df_br_melt, x="genero_formatado", y="Média", color="Atributo", barmode="group",
                     color_discrete_sequence=["#1ed760", "#3D85C6", "#FF9900"],
-                    labels={'genero': 'Gênero', 'Média': 'Média'},
+                    labels={'genero_formatado': 'Gênero', 'Média': 'Média'},
                     title="Comparativo Sonoro: Gêneros Musicais Brasileiros"
                 )
                 fig_br.update_layout(template="plotly_dark", margin=dict(l=20, r=20, t=40, b=20), height=350, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
                 st.plotly_chart(fig_br, use_container_width=True)
-        with col8_2:
+        with col_br1_2:
             with st.container(border=True):
-                st.markdown("**Legenda e Visual:**\n* **Eixo X:** Gêneros nacionais · **Eixo Y:** Escala média · **Barra Verde:** Dançabilidade · **Barra Azul:** Energia · **Barra Laranja:** Nível Acústico.")
-                dado_8 = "O Funk lidera em Dançabilidade (0.692) e possui menor índice acústico (0.324). O Forró atinge a maior Energia média (0.789). Pagode e Samba destacam-se como os mais orgânicos, com os maiores índices acústicos (0.562 e 0.485, respectivamente)."
-                st.markdown(f"<div style='{self.estilo_dado}'><strong>O que o dado mostra:</strong><br>{dado_8}</div>", unsafe_allow_html=True)
-                insight_8 = "A música brasileira exibe um comportamento sonoro multifacetado: enquanto o Funk e o Forró apresentam alto apelo físico com grande dançabilidade e intensidade digital, estilos como o Pagode e o Samba mantêm viva a rica tradição acústica nacional através de instrumentos orgânicos."
-                st.markdown(f"<div style='{self.estilo_insight}'><strong>Insight:</strong><br>{insight_8}</div>", unsafe_allow_html=True)
+                st.markdown("**Legenda e Visual:**\n* **Eixo X:** Gêneros nacionais · **Eixo Y:** Escala média (0 a 1) · **Barra Verde:** Dançabilidade · **Barra Azul:** Energia · **Barra Laranja:** Nível Acústico.")
+                dado_br1 = "O Funk lidera em Dançabilidade (0.692) e possui o menor índice acústico (0.324). O Forró atinge a maior Energia média (0.789). Pagode e Samba destacam-se como os mais orgânicos, com os maiores índices acústicos (0.562 e 0.485, respectivamente)."
+                st.markdown(f"<div style='{self.estilo_dado}'><strong>O que o dado mostra:</strong><br>{dado_br1}</div>", unsafe_allow_html=True)
+                insight_br1 = "A música brasileira exibe um comportamento sonoro multifacetado: enquanto o Funk e o Forró apresentam alto apelo físico com grande dançabilidade e intensidade digital, estilos como o Pagode e o Samba mantêm viva a rica tradição acústica nacional através de instrumentos orgânicos."
+                st.markdown(f"<div style='{self.estilo_insight}'><strong>Insight:</strong><br>{insight_br1}</div>", unsafe_allow_html=True)
+
+        # --- INSIGHT NACIONAL 2: BPM (BOXPLOT DE VELOCIDADE) ---
+        st.markdown("---")
+        st.subheader("2. A Velocidade e a Pulsação do Ritmo Nacional (BPM)")
+        col_br2_1, col_br2_2 = st.columns([1.1, 0.9])
+        with col_br2_1:
+            with st.container(border=True):
+                df_br_completo = df_faixas[df_faixas['genero'].isin(['sertanejo', 'forro', 'samba', 'pagode', 'mpb', 'funk'])].copy()
+                df_br_completo['genero_formatado'] = df_br_completo['genero'].map(mapa_nomes)
+                fig_bpm = px.box(
+                    df_br_completo, x="genero_formatado", y="tempo", color="genero_formatado",
+                    color_discrete_sequence=px.colors.qualitative.Pastel,
+                    labels={'genero_formatado': 'Gênero', 'tempo': 'BPM (Velocidade)'},
+                    title="Distribuição de Velocidade (BPM) por Gênero Nacional"
+                )
+                fig_bpm.update_layout(template="plotly_dark", margin=dict(l=20, r=20, t=40, b=20), height=350, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False)
+                st.plotly_chart(fig_bpm, use_container_width=True)
+        with col_br2_2:
+            with st.container(border=True):
+                st.markdown("**Legenda e Visual:**\n* **Eixo X:** Gêneros nacionais · **Eixo Y:** Batidas Por Minuto (BPM) · **Caixas Coloridas:** Variação e limites de velocidade das músicas.")
+                dado_br2 = "O Forró lidera em andamento físico rápido com uma média de velocidade próxima a 130 BPM, acompanhado de perto pelo Funk (média de 125 BPM). A MPB e o Samba apresentam andamentos mais cadenciados e controlados, com médias entre 110 e 115 BPM."
+                st.markdown(f"<div style='{self.estilo_dado}'><strong>O que o dado mostra:</strong><br>{dado_br2}</div>", unsafe_allow_html=True)
+                insight_br2 = "Gêneros focados em comemorações e performance de dança ativa (como Forró e Funk) estruturam-se sobre andamentos rápidos e tempos marcados. Em contrapartida, estilos voltados à apreciação poética e dança clássica (Samba e MPB) priorizam ritmos confortáveis e andamentos mais relaxantes para o ouvinte."
+                st.markdown(f"<div style='{self.estilo_insight}'><strong>Insight:</strong><br>{insight_br2}</div>", unsafe_allow_html=True)
+
+        # --- INSIGHT NACIONAL 3: POPULARIDADE MÉDIA ---
+        st.markdown("---")
+        st.subheader("3. Tração Comercial e Aceitação dos Gêneros Brasileiros")
+        col_br3_1, col_br3_2 = st.columns([1.1, 0.9])
+        with col_br3_1:
+            with st.container(border=True):
+                df_pop_br = df_br_completo.groupby('genero_formatado')['popularidade'].mean().reset_index().sort_values(by='popularidade', ascending=False)
+                fig_pop = px.bar(
+                    df_pop_br, x="popularidade", y="genero_formatado", orientation="h",
+                    color="popularidade", color_continuous_scale="Greens",
+                    labels={'popularidade': 'Popularidade Média', 'genero_formatado': 'Gênero'},
+                    title="Popularidade Média dos Gêneros Nacionais no Dataset"
+                )
+                fig_pop.update_layout(template="plotly_dark", margin=dict(l=20, r=20, t=40, b=20), height=350, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False, yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_pop, use_container_width=True)
+        with col_br3_2:
+            with st.container(border=True):
+                st.markdown("**Legenda e Visual:**\n* **Eixo X:** Escala de Popularidade Média (0 a 100) · **Eixo Y:** Gêneros nacionais · **Cor:** Intensidade da popularidade média.")
+                dado_br3 = "O Sertanejo e o Funk apresentam a maior média de popularidade no banco de dados (ambos acima de 50 de pontuação média). MPB e Samba mantêm médias estáveis mas inferiores (entre 35 e 40)."
+                st.markdown(f"<div style='{self.estilo_dado}'><strong>O que o dado mostra:</strong><br>{dado_br3}</div>", unsafe_allow_html=True)
+                insight_br3 = "O Sertanejo e o Funk possuem forte apelo de consumo em massa e rotação contínua nas plataformas de streaming atuais, concentrando os maiores volumes de engajamento diário de playlists comerciais. A MPB e o Samba, embora possuam valor cultural indiscutível, operam em nichos de consumo estáveis, mas com menor frequência de reprodução massiva nos charts."
+                st.markdown(f"<div style='{self.estilo_insight}'><strong>Insight:</strong><br>{insight_br3}</div>", unsafe_allow_html=True)
 
     def renderizar_laboratorio(self, df_faixas):
         """Monta a aba de laboratório dinâmico com filtros interativos e os 8 gráficos editáveis."""
@@ -634,8 +695,10 @@ class DashboardSpotifyApp:
         self.renderizar_kpis(df_faixas)
         
         # Fluxo condicional das abas
-        if st.session_state.aba_selecionada == 'relatorio':
+        if st.session_state.aba_selecionada == 'relatorio_mundial':
             self.renderizar_relatorio(df_faixas, df_todos_generos, df_artistas, df_br)
+        elif st.session_state.aba_selecionada == 'relatorio_nacional':
+            self.renderizar_relatorio_nacional(df_faixas, df_br)
         else:
             self.renderizar_laboratorio(df_faixas)
 
