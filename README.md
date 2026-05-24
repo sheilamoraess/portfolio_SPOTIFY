@@ -5,9 +5,22 @@ Investigação do DNA sonoro por trás dos maiores hits do Spotify através de P
 A indústria da música é altamente competitiva. Milhares de faixas são lançadas diariamente, mas apenas uma pequena fração atinge o topo das paradas (Top Charts). Este projeto tem como objetivo investigar o "DNA sonoro" das músicas. Será que faixas mais enérgicas e dançantes têm mais chance de se tornarem hits? Como os diferentes gêneros se comportam em relação a esses atributos?
 
 ## Perguntas Respondidas
-* Quais atributos de áudio (energia, dançabilidade, BPM) são mais comuns nas músicas populares?
-* A "Guerra do Volume" (Loudness War) existe nas paradas de sucesso?
-* É possível prever se uma música será um "Hit" com base em suas características acústicas?
+A partir dos dados analisados e dos modelos aplicados, respondemos às seguintes perguntas sobre o mercado da música:
+
+1. **Qual característica técnica de áudio é a mais importante para prever se uma canção se tornará um sucesso?**
+   * *Resposta (Insight 3):* A **dançabilidade** (o ritmo e cadência da música) foi identificada pelo modelo de Machine Learning como a métrica número um e mais decisiva para prever um hit.
+2. **Os mega hits são realmente mais animados e enérgicos do que músicas normais?**
+   * *Resposta (Insight 2):* Sim. Músicas comuns mantêm médias de dançabilidade em torno de 0.55, enquanto os Mega Hits (popularidade acima de 70) saltam para 0.65 de dançabilidade e 0.66 de energia, demonstrando a clara preferência das massas por sonoridades animadas (upbeat).
+3. **Existe uma diferença marcante no "DNA Sonoro" de acordo com o gênero da música?**
+   * *Resposta (Insight 1):* Sim. Gêneros urbanos (como Funk e Hip-hop) apresentam altos níveis de dançabilidade e ritmo, enquanto gêneros orgânicos e instrumentais (como Sertanejo e Rock) dependem muito mais do nível de energia e intensidade da canção.
+4. **A "Guerra do Volume" (Loudness War) é uma realidade comercial nas paradas de sucesso?**
+   * *Resposta (Insight 4):* Sim. As faixas de sucesso tocam, em média, a -6.7 dB, um volume sensivelmente mais alto do que as faixas comuns (-8.5 dB). Isso comprova que masterizações mais altas são usadas comercialmente para capturar a atenção imediata do público.
+5. **Ainda há espaço para músicas essencialmente acústicas (voz e violão) no mainstream?**
+   * *Resposta (Insight 5):* O espaço está cada vez menor. O índice acústico cai drasticamente de 0.33 em músicas comuns para apenas 0.22 em faixas de sucesso, consolidando o domínio de produções sintetizadas digitais.
+6. **É possível atingir o sucesso com músicas tristes e melancólicas?**
+   * *Resposta (Insight 6):* Sim, mas há caminhos recomendados. Músicas melancólicas (baixo índice de valência) encontram maior aceitação comercial e público fiel quando seguem a rota do Rock Alternativo e da Eletrônica Indie.
+7. **Como se comportam os grandes artistas no algoritmo do Spotify em termos de consistência de catálogo?**
+   * *Resposta (Insight 7):* Artistas de elite, como Bad Bunny, demonstram consistência ao sustentar uma média extraordinária de popularidade (85.3) com um catálogo volumoso de 22 músicas analisadas, superando o fenômeno de "artista de um sucesso só" (One-Hit Wonder).
 
 ## Fontes de Dados
 * Spotify Tracks Dataset: Um conjunto de dados com mais de 114 mil faixas contendo as informações vitais de áudio extraídas diretamente da API oficial do Spotify (Energy, Danceability, Valence, Tempo, Loudness, Acousticness).
