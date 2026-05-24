@@ -65,11 +65,11 @@ Abaixo estao as capturas de tela do aplicativo web interativo funcionando com o 
    pip install -r requirements.txt
    ```
 3. Processamento de Dados (Execute apenas 1 vez para criar e limpar o banco local):
-   * `python 02_download_dataset.py` (Realiza o download dos dados brutos de forma automatica)
-   * `python 03_carregar_banco.py` (Cria a modelagem relacional no SQLite e popula as tabelas)
-   * `python 09_limpeza_generos.py` (Executa o agrupamento de micro-generos redundantes no banco de dados)
+   * `python src/02_download_dataset.py` (Realiza o download dos dados brutos de forma automatica)
+   * `python src/03_carregar_banco.py` (Cria a modelagem relacional no SQLite e popula as tabelas)
+   * `python src/09_limpeza_generos.py` (Executa o agrupamento de micro-generos redundantes no banco de dados)
 4. Inicie o Servidor do Dashboard Interativo:
    ```bash
-   streamlit run 08_dashboard_interativo.py
+   streamlit run src/08_dashboard_interativo.py
    ```
 5. O aplicativo web abrira automaticamente no seu navegador no endereço `http://localhost:8501`.
