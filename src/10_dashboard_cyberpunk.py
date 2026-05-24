@@ -2,14 +2,11 @@
 10_dashboard_cyberpunk.py
 =========================
 Dashboard interativo — tema Neon Cyberpunk
-Roda com: python 10_dashboard_cyberpunk.py
-Acesse em:  http://127.0.0.1:8050
+Roda com: python src/10_dashboard_cyberpunk.py
+Acesse em: http://127.0.0.1:8050
 
 Dependências:
     pip install dash plotly pandas scikit-learn
-
-O banco spotify_brasil.db deve estar na mesma pasta que este script
-(gerado pelo 03_carregar_banco.py).
 """
 
 import sqlite3
@@ -17,10 +14,9 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 
 import dash
-from dash import dcc, html, Input, Output
+from dash import dcc, html, Input, Output, State
 import plotly.graph_objects as go
 import plotly.express as px
 
@@ -56,6 +52,7 @@ CARD_STYLE = {
     "border": f"1px solid {BORDER}",
     "borderRadius": "10px",
     "padding": "20px",
+    "marginBottom": "16px",
 }
 
 TITLE_STYLE = {
@@ -70,47 +67,83 @@ TITLE_STYLE = {
 
 VALUE_STYLE = {
     "fontFamily": FONT,
-    "fontSize": "28px",
+    "fontSize": "26px",
     "fontWeight": "700",
     "lineHeight": "1",
+}
+
+ESTILO_DADO = {
+    "background": "rgba(139, 233, 253, 0.04)",
+    "borderLeft": f"4px solid {CIANO}",
+    "padding": "10px 12px",
+    "borderRadius": "4px",
+    "marginBottom": "10px",
+    "fontSize": "11.5px",
+    "color": BRANCO,
+    "lineHeight": "1.45"
+}
+
+ESTILO_INSIGHT = {
+    "background": "rgba(80, 250, 123, 0.04)",
+    "borderLeft": f"4px solid {VERDE}",
+    "padding": "10px 12px",
+    "borderRadius": "4px",
+    "fontSize": "11.5px",
+    "color": BRANCO,
+    "lineHeight": "1.45"
+}
+
+BTN_BASE_STYLE = {
+    "flex": "1",
+    "padding": "16px 20px",
+    "fontFamily": FONT,
+    "fontSize": "12.5px",
+    "fontWeight": "700",
+    "backgroundColor": BG_CARD,
+    "border": f"1px solid {BORDER}",
+    "borderRadius": "8px",
+    "cursor": "pointer",
+    "transition": "all 0.3s ease",
+}
+
+dropdown_style = {
+    "backgroundColor": BG_CARD2,
+    "color":           BRANCO,
+    "border":          f"1px solid {BORDER}",
+    "borderRadius":    "6px",
+    "fontFamily":      FONT,
+    "fontSize":        "12px",
 }
 
 layout_base = dict(
     paper_bgcolor=BG_CARD,
     plot_bgcolor=BG_CARD,
-    font=dict(family=FONT, color=BRANCO, size=11),
-    margin=dict(l=12, r=12, t=36, b=12),
+    font=dict(family=FONT, color=BRANCO, size=10),
+    margin=dict(l=15, r=15, t=40, b=15),
     legend=dict(
         bgcolor="rgba(0,0,0,0)",
         bordercolor=BORDER,
         borderwidth=1,
-        font=dict(size=10, color=CINZA),
+        font=dict(size=9, color=CINZA),
     ),
     xaxis=dict(
         gridcolor=BORDER,
         zerolinecolor=BORDER,
-        tickfont=dict(color=CINZA, size=10),
-        title_font=dict(color=CINZA, size=10),
+        tickfont=dict(color=CINZA, size=9),
+        title_font=dict(color=CINZA, size=9),
     ),
     yaxis=dict(
         gridcolor=BORDER,
         zerolinecolor=BORDER,
-        tickfont=dict(color=CINZA, size=10),
-        title_font=dict(color=CINZA, size=10),
+        tickfont=dict(color=CINZA, size=9),
+        title_font=dict(color=CINZA, size=9),
     ),
 )
 
 
 # ─────────────────────────────────────────────
-#  CARREGAMENTO DE DADOS
+#  CARREGAMENTO DE DADOS (SQLite)
 # ─────────────────────────────────────────────
-GENEROS_FOCO = [
-    "acoustic", "pop", "rock", "hip-hop", "jazz",
-    "classical", "r-n-b", "forro", "sertanejo",
-    "pagode", "funk", "electronic", "indie", "blues", "country",
-]
-
-
 def obter_caminho_banco():
     # Verifica primeiro se o banco está na raiz atual (se rodar da raiz)
     if os.path.exists("spotify_brasil.db"):
@@ -122,367 +155,593 @@ def obter_caminho_banco():
     return "spotify_brasil.db"
 
 
-def carregar_dados(db_path=None):
+def carregar_dados_completos(db_path=None):
     if db_path is None:
         db_path = obter_caminho_banco()
     conn = sqlite3.connect(db_path)
-    query = """
-        SELECT
-            f.nome       AS musica,
-            art.nome     AS artista,
-            f.genero,
-            f.popularidade,
-            a.danceability,
-            a.energy,
-            a.valence,
-            a.tempo      AS bpm,
-            a.loudness,
-            a.acousticness
+    
+    # 1. Dados gerais de todas as faixas
+    q_faixas = """
+        SELECT 
+            f.nome AS musica, art.nome AS artista, f.genero, f.popularidade,
+            a.danceability, a.energy, a.valence, a.tempo AS bpm, a.loudness, a.acousticness,
+            CASE WHEN f.popularidade >= 70 THEN 'Mega Hit (>=70)' ELSE 'Comum (<70)' END as status_hit
         FROM faixas f
         JOIN atributos_audio a ON f.id = a.faixa_id
         JOIN artistas art      ON f.artista_id = art.id
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(q_faixas, conn)
+    
+    # 2. Dados agrupados por gênero para o Insight 1 (mínimo de 10 faixas)
+    q_todos_generos = """
+        SELECT f.genero, AVG(a.danceability) as dance, AVG(a.energy) as energia, COUNT(f.id) as total_faixas
+        FROM faixas f JOIN atributos_audio a ON f.id = a.faixa_id
+        WHERE f.genero IS NOT NULL
+        GROUP BY f.genero HAVING COUNT(f.id) >= 10
+    """
+    df_todos_generos = pd.read_sql(q_todos_generos, conn)
+    
+    # 3. Top artistas de elite (mínimo de 5 faixas)
+    q_artistas = """
+        SELECT art.nome as artista, AVG(f.popularidade) as popularidade_media, COUNT(f.id) as total_faixas
+        FROM faixas f
+        JOIN artistas art ON f.artista_id = art.id
+        GROUP BY art.id HAVING COUNT(f.id) >= 5
+        ORDER BY popularidade_media DESC LIMIT 10
+    """
+    df_artistas = pd.read_sql(q_artistas, conn)
+    
+    # 4. Gêneros nacionais específicos
+    q_br = """
+        SELECT f.genero, AVG(a.danceability) as dance, AVG(a.energy) as energia, AVG(a.acousticness) as acustico
+        FROM faixas f JOIN atributos_audio a ON f.id = a.faixa_id
+        WHERE f.genero IN ('sertanejo', 'forro', 'samba', 'pagode', 'mpb', 'funk')
+        GROUP BY f.genero
+    """
+    df_br = pd.read_sql(q_br, conn)
+    
     conn.close()
-
+    
     df["categoria"] = pd.cut(
         df["popularidade"],
         bins=[-1, 30, 69, 100],
         labels=["Baixa (0–30)", "Média (31–69)", "Sucesso (70–100)"],
     )
     df["is_hit"] = (df["popularidade"] >= 70).astype(int)
-    return df
+    
+    return df, df_todos_generos, df_artistas, df_br
 
 
-df = carregar_dados()
-
-
-# ─────────────────────────────────────────────
-#  FEATURE IMPORTANCE (treinado uma vez)
-# ─────────────────────────────────────────────
-FEATURES       = ["danceability", "energy", "valence", "bpm", "loudness", "acousticness"]
-FEATURES_LABEL = ["Dançabilidade", "Energia", "Alegria", "BPM", "Volume", "Acústica"]
-FEAT_COLORS    = [ROXO, CIANO, VERDE, ROSA, LARANJA, CINZA]
-
-_df_ml = df.dropna(subset=FEATURES + ["is_hit"]).copy()
-_X = _df_ml[FEATURES]
-_y = _df_ml["is_hit"]
-_Xtr, _Xte, _ytr, _yte = train_test_split(_X, _y, test_size=0.2, random_state=42)
-_modelo = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
-_modelo.fit(_Xtr, _ytr)
-IMPORTANCIAS = pd.Series(_modelo.feature_importances_, index=FEATURES_LABEL).sort_values()
-
-
-# ─────────────────────────────────────────────
-#  KPIs
-# ─────────────────────────────────────────────
-TOTAL_FAIXAS  = f"{len(df):,}".replace(",", ".")
-TOTAL_GENEROS = str(df["genero"].nunique())
-TAXA_HITS     = f"{df['is_hit'].mean() * 100:.1f}%"
-BPM_MEDIO     = f"{df['bpm'].mean():.0f}"
-
-
-def kpi_card(titulo, valor, cor):
-    return html.Div(
-        [
-            html.P(titulo, style=TITLE_STYLE),
-            html.P(valor, style={**VALUE_STYLE, "color": cor}),
-        ],
-        style={**CARD_STYLE, "flex": "1", "minWidth": "120px"},
-    )
-
-
-# ─────────────────────────────────────────────
-#  FUNÇÕES DE GRÁFICO
-# ─────────────────────────────────────────────
-
-def fig_dna(atributo="danceability", label="Dançabilidade"):
-    medias = (
-        df.groupby("genero")[atributo]
-        .mean()
-        .sort_values(ascending=True)
-        .reset_index()
-    )
-    fig = go.Figure(
-        go.Bar(
-            x=medias[atributo],
-            y=medias["genero"],
-            orientation="h",
-            marker=dict(
-                color=medias[atributo],
-                colorscale=[[0, BG_CARD2], [0.4, CINZA], [0.75, ROXO], [1, ROSA]],
-                showscale=False,
-            ),
-            text=medias[atributo].round(2),
-            textposition="outside",
-            textfont=dict(size=9, color=CINZA),
-            hovertemplate="<b>%{y}</b><br>" + label + ": %{x:.3f}<extra></extra>",
-        )
-    )
-    layout = {
-        **layout_base,
-        "title": dict(text=f"DNA SONORO · {label.upper()}", font=dict(size=11, color=ROXO)),
-        "xaxis": dict(**layout_base["xaxis"], range=[0, 1.05]),
-        "height": 400,
-    }
-    fig.update_layout(**layout)
-    return fig
-
-
-def fig_scatter(genero_filtro=None):
-    dados = df if genero_filtro is None else df[df["genero"] == genero_filtro]
-    # Amostragem para preservar a performance do navegador em bases grandes
-    if len(dados) > 2000:
-        dados = dados.sample(2000, random_state=42)
-
-    cat_map  = {"Baixa (0–30)": CINZA, "Média (31–69)": CIANO, "Sucesso (70–100)": ROSA}
-    size_map = {"Baixa (0–30)": 4,     "Média (31–69)": 6,     "Sucesso (70–100)": 9}
-
-    fig = go.Figure()
-    for cat, cor in cat_map.items():
-        sub = dados[dados["categoria"] == cat]
-        fig.add_trace(
-            go.Scatter(
-                x=sub["danceability"],
-                y=sub["energy"],
-                mode="markers",
-                name=cat,
-                marker=dict(
-                    color=cor,
-                    size=size_map[cat],
-                    opacity=0.55,
-                    line=dict(width=0),
-                ),
-                hovertemplate=(
-                    "<b>%{customdata[0]}</b><br>"
-                    "Artista: %{customdata[1]}<br>"
-                    "Dance: %{x:.2f}  Energia: %{y:.2f}<br>"
-                    "Popularidade: %{customdata[2]}<extra></extra>"
-                ),
-                customdata=sub[["musica", "artista", "popularidade"]].values if not sub.empty else np.empty((0, 3)),
-            )
-        )
-
-    layout = {
-        **layout_base,
-        "title": dict(text="ENERGIA × DANÇABILIDADE", font=dict(size=11, color=ROXO)),
-        "xaxis": dict(**layout_base["xaxis"], title="Dançabilidade", range=[-0.02, 1.05]),
-        "yaxis": dict(**layout_base["yaxis"], title="Energia",       range=[-0.02, 1.05]),
-        "height": 360,
-        "legend": dict(**layout_base["legend"], title=dict(text="Popularidade", font=dict(color=CINZA, size=9))),
-    }
-    fig.update_layout(**layout)
-    return fig
-
-
-def fig_importancia():
-    fig = go.Figure(
-        go.Bar(
-            x=IMPORTANCIAS.values,
-            y=IMPORTANCIAS.index,
-            orientation="h",
-            marker=dict(color=FEAT_COLORS[:len(IMPORTANCIAS)]),
-            text=[f"{v:.1%}" for v in IMPORTANCIAS.values],
-            textposition="outside",
-            textfont=dict(size=9, color=CINZA),
-            hovertemplate="<b>%{y}</b><br>Importância: %{x:.3f}<extra></extra>",
-        )
-    )
-    layout = {
-        **layout_base,
-        "title": dict(text="O QUE DEFINE UM HIT? · RANDOM FOREST", font=dict(size=11, color=ROXO)),
-        "xaxis": dict(**layout_base["xaxis"], title="Importância relativa", tickformat=".0%"),
-        "height": 310,
-    }
-    fig.update_layout(**layout)
-    return fig
-
-
-def fig_popularidade_genero():
-    top10 = df.groupby("genero").size().sort_values(ascending=False).head(10).index
-    dados = df[df["genero"].isin(top10)].copy()
-
-    avg_pop  = dados.groupby("genero")["popularidade"].mean().sort_values(ascending=False)
-    taxa_hit = (dados.groupby("genero")["is_hit"].mean() * 100).reindex(avg_pop.index)
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Bar(
-            name="Popularidade média",
-            x=avg_pop.index,
-            y=avg_pop.values,
-            marker=dict(
-                color=avg_pop.values,
-                colorscale=[[0, BG_CARD2], [0.5, ROXO], [1, ROSA]],
-                showscale=False,
-            ),
-            yaxis="y",
-            hovertemplate="<b>%{x}</b><br>Pop. média: %{y:.1f}<extra></extra>",
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            name="Taxa de hits (%)",
-            x=taxa_hit.index,
-            y=taxa_hit.values,
-            mode="lines+markers",
-            line=dict(color=CIANO, width=2, dash="dot"),
-            marker=dict(color=CIANO, size=7, symbol="diamond"),
-            yaxis="y2",
-            hovertemplate="<b>%{x}</b><br>Taxa de hits: %{y:.1f}%<extra></extra>",
-        )
-    )
-    layout = {
-        **layout_base,
-        "title": dict(text="POPULARIDADE & TAXA DE HITS POR GÊNERO", font=dict(size=11, color=ROXO)),
-        "xaxis": dict(**layout_base["xaxis"], tickangle=-30),
-        "yaxis": dict(**layout_base["yaxis"], title="Popularidade média"),
-        "yaxis2": dict(
-            overlaying="y",
-            side="right",
-            title="Taxa de hits (%)",
-            gridcolor=BORDER,
-            tickfont=dict(color=CIANO, size=10),
-            title_font=dict(color=CIANO, size=10),
-        ),
-        "legend": dict(**layout_base["legend"], x=0.01, y=0.99),
-        "height": 360,
-        "barmode": "group",
-    }
-    fig.update_layout(**layout)
-    return fig
-
-
-def fig_histograma():
-    fig = go.Figure()
-    fig.add_trace(
-        go.Histogram(
-            x=df["popularidade"],
-            nbinsx=40,
-            name="Faixas",
-            marker=dict(
-                color=df["popularidade"],
-                colorscale=[[0, BG_CARD2], [0.55, ROXO], [0.9, ROSA], [1, "#ff5555"]],
-                showscale=False,
-                line=dict(width=0),
-            ),
-            opacity=0.85,
-            hovertemplate="Popularidade ~%{x}<br>Faixas: %{y}<extra></extra>",
-        )
-    )
-    fig.add_vline(
-        x=70,
-        line=dict(color=CIANO, width=1.5, dash="dash"),
-        annotation=dict(
-            text="limiar de hit (70)",
-            font=dict(color=CIANO, size=10, family=FONT),
-            bgcolor=BG_CARD,
-            borderpad=4,
-        ),
-    )
-    fig.add_vline(
-        x=df["popularidade"].mean(),
-        line=dict(color=VERDE, width=1, dash="dot"),
-        annotation=dict(
-            text=f"média ({df['popularidade'].mean():.0f})",
-            font=dict(color=VERDE, size=10, family=FONT),
-            bgcolor=BG_CARD,
-            borderpad=4,
-            yshift=-24,
-        ),
-    )
-    layout = {
-        **layout_base,
-        "title": dict(text="DISTRIBUIÇÃO DE POPULARIDADE", font=dict(size=11, color=ROXO)),
-        "xaxis": dict(**layout_base["xaxis"], title="Popularidade (0–100)"),
-        "yaxis": dict(**layout_base["yaxis"], title="Nº de faixas"),
-        "height": 310,
-        "showlegend": False,
-    }
-    fig.update_layout(**layout)
-    return fig
-
-
-def fig_radar_genero(genero="pop"):
-    attrs  = ["danceability", "energy", "valence", "acousticness"]
-    labels = ["Dançabilidade", "Energia", "Alegria", "Acústica"]
-
-    sub    = df[df["genero"] == genero][attrs].mean()
-    global_= df[attrs].mean()
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=list(sub.values) + [sub.values[0]],
-        theta=labels + [labels[0]],
-        fill="toself",
-        fillcolor=f"rgba(195,166,255,0.15)",
-        line=dict(color=ROXO, width=2),
-        name=genero,
-    ))
-    fig.add_trace(go.Scatterpolar(
-        r=list(global_.values) + [global_.values[0]],
-        theta=labels + [labels[0]],
-        fill="toself",
-        fillcolor=f"rgba(139,233,253,0.08)",
-        line=dict(color=CIANO, width=1.5, dash="dot"),
-        name="Média geral",
-    ))
-    fig.update_layout(
-        paper_bgcolor=BG_CARD,
-        plot_bgcolor=BG_CARD,
-        font=dict(family=FONT, color=BRANCO, size=10),
-        polar=dict(
-            bgcolor=BG_CARD2,
-            radialaxis=dict(
-                visible=True, range=[0, 1],
-                gridcolor=BORDER, tickcolor=CINZA,
-                tickfont=dict(size=8, color=CINZA),
-                linecolor=BORDER,
-            ),
-            angularaxis=dict(
-                gridcolor=BORDER,
-                tickfont=dict(size=10, color=BRANCO),
-                linecolor=BORDER,
-            ),
-        ),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(size=10, color=CINZA),
-        ),
-        title=dict(text=f"RADAR · {genero.upper()}", font=dict(size=11, color=ROXO)),
-        margin=dict(l=40, r=40, t=50, b=20),
-        height=310,
-    )
-    return fig
-
-
-# ─────────────────────────────────────────────
-#  APP DASH
-# ─────────────────────────────────────────────
-app = dash.Dash(__name__, title="Spotify · Cyberpunk Dashboard")
+df, df_todos_generos, df_artistas, df_br = carregar_dados_completos()
 
 GENEROS_LISTA = sorted(df["genero"].dropna().unique())
-ATRIBUTOS = {
-    "danceability": "Dançabilidade",
-    "energy":       "Energia",
-    "valence":      "Alegria",
-    "bpm":          "BPM",
-    "acousticness": "Acústica",
-}
+MAPA_NOMES_BR = {'sertanejo': 'Sertanejo', 'forro': 'Forró', 'samba': 'Samba', 'pagode': 'Pagode', 'mpb': 'MPB', 'funk': 'Funk'}
 
-# ── Estilo do dropdown ──
-dropdown_style = {
-    "backgroundColor": BG_CARD2,
-    "color":           BRANCO,
-    "border":          f"1px solid {BORDER}",
-    "borderRadius":    "6px",
-    "fontFamily":      FONT,
-    "fontSize":        "12px",
-}
+# ─────────────────────────────────────────────
+#  FEATURE IMPORTANCE (Random Forest)
+# ─────────────────────────────────────────────
+FEATURES = ["danceability", "energy", "valence", "bpm", "loudness", "acousticness"]
+FEATURES_LABEL = ["Dançabilidade", "Energia", "Alegria (Valência)", "Tempo (BPM)", "Volume (Loudness)", "Acústico (Acousticness)"]
+FEAT_COLORS = [VERDE, CIANO, ROXO, ROSA, LARANJA, CINZA]
+
+_df_ml = df.dropna(subset=FEATURES).copy()
+_df_ml["is_hit"] = (_df_ml["popularidade"] >= 70).astype(int)
+_X = _df_ml[FEATURES]
+_y = _df_ml["is_hit"]
+_modelo = RandomForestClassifier(n_estimators=50, random_state=42, n_jobs=-1)
+_modelo.fit(_X, _y)
+IMPORTANCIAS = pd.Series(_modelo.feature_importances_, index=FEATURES_LABEL).sort_values(ascending=True)
+
+
+# ─────────────────────────────────────────────
+#  KPI BUILDER
+# ─────────────────────────────────────────────
+def gerar_kpi_layout(df_kpi):
+    total_faixas = len(df_kpi)
+    total_generos = df_kpi["genero"].nunique()
+    total_artistas = df_kpi["artista"].nunique()
+    total_hits = len(df_kpi[df_kpi["popularidade"] >= 70])
+    
+    return html.Div(
+        style={"display": "flex", "gap": "14px", "marginBottom": "20px", "flexWrap": "wrap"},
+        children=[
+            # Músicas Analisadas
+            html.Div(
+                style={**CARD_STYLE, "flex": "1", "minWidth": "160px", "marginBottom": "0"},
+                children=[
+                    html.P("MÚSICAS ANALISADAS", style=TITLE_STYLE),
+                    html.P(f"{total_faixas:,}".replace(",", "."), style={**VALUE_STYLE, "color": ROXO}),
+                ]
+            ),
+            # Artistas Identificados
+            html.Div(
+                style={**CARD_STYLE, "flex": "1", "minWidth": "160px", "marginBottom": "0"},
+                children=[
+                    html.P("ARTISTAS IDENTIFICADOS", style=TITLE_STYLE),
+                    html.P(f"{total_artistas:,}".replace(",", "."), style={**VALUE_STYLE, "color": CIANO}),
+                ]
+            ),
+            # Gêneros Musicais
+            html.Div(
+                style={**CARD_STYLE, "flex": "1", "minWidth": "160px", "marginBottom": "0"},
+                children=[
+                    html.P("GÊNEROS MUSICAIS", style=TITLE_STYLE),
+                    html.P(str(total_generos), style={**VALUE_STYLE, "color": VERDE}),
+                ]
+            ),
+            # Hits de Sucesso (Pop >= 70)
+            html.Div(
+                style={**CARD_STYLE, "flex": "1", "minWidth": "160px", "marginBottom": "0"},
+                children=[
+                    html.P("FAIXAS DE SUCESSO (POP >= 70)", style=TITLE_STYLE),
+                    html.P(f"{total_hits:,}".replace(",", "."), style={**VALUE_STYLE, "color": ROSA}),
+                ]
+            ),
+        ]
+    )
+
+
+# ─────────────────────────────────────────────
+#  FUNÇÕES DE PLOTAGEM DE GRÁFICOS (MUNDIAL E NACIONAL)
+# ─────────────────────────────────────────────
+def plot_insight_1():
+    fig = px.scatter(
+        df_todos_generos, x="dance", y="energia", color="energia", size="total_faixas",
+        hover_data=["genero", "total_faixas"],
+        color_continuous_scale="Viridis",
+        labels={'dance': 'Dançabilidade Média', 'energia': 'Energia Média', 'total_faixas': 'Faixas'},
+        title="Dispersão de DNA Sonoro Médio por Gênero Musical"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+        "coloraxis": {"showscale": False}
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_2():
+    df_animado = df.groupby('status_hit')[['danceability', 'energy']].mean().reset_index()
+    df_melt = df_animado.melt(id_vars='status_hit', var_name='Atributo', value_name='Média')
+    df_melt['Atributo'] = df_melt['Atributo'].map({'danceability': 'Dançabilidade', 'energy': 'Energia'})
+    fig = px.bar(
+        df_melt, x="Atributo", y="Média", color="status_hit", barmode="group",
+        color_discrete_map={"Mega Hit (>=70)": VERDE, "Comum (<70)": CINZA},
+        labels={'status_hit': 'Categoria', 'Média': 'Média'},
+        title="Comparativo das Médias de Ritmo e Intensidade"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_3():
+    fig = px.bar(
+        pd.DataFrame({"importancia": IMPORTANCIAS.values, "atributo": IMPORTANCIAS.index}),
+        x="importancia", y="atributo", orientation="h",
+        color="importancia", color_continuous_scale="Greens",
+        labels={'importancia': 'Importância', 'atributo': 'Atributo'},
+        title="Importância dos Atributos Técnicos para o Algoritmo"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+        "coloraxis": {"showscale": False}
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_4():
+    dados_amostra = df.sample(min(len(df), 5000), random_state=42)
+    fig = px.box(
+        dados_amostra, x="status_hit", y="loudness", color="status_hit",
+        color_discrete_map={"Mega Hit (>=70)": VERDE, "Comum (<70)": CINZA},
+        labels={'status_hit': 'Categoria', 'loudness': 'Volume (dB)'},
+        title="Distribuição do Volume Físico das Faixas"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_5():
+    df_acustico = df.groupby('status_hit')['acousticness'].mean().reset_index()
+    fig = px.bar(
+        df_acustico, x="status_hit", y="acousticness", color="status_hit",
+        color_discrete_map={"Mega Hit (>=70)": VERDE, "Comum (<70)": CINZA},
+        labels={'status_hit': 'Categoria', 'acousticness': 'Média Acústica'},
+        title="Índice de Acústica Médio por Categoria"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_6():
+    df_tristes = df[(df['popularidade'] >= 70) & (df['valence'] < 0.4)]
+    df_tristes_count = df_tristes['genero'].value_counts().reset_index()
+    df_tristes_count.columns = ['Gênero', 'Hits Tristes']
+    fig = px.bar(
+        df_tristes_count.head(10), x="Gênero", y="Hits Tristes",
+        color="Hits Tristes", color_continuous_scale="Reds",
+        labels={'Gênero': 'Gênero', 'Hits Tristes': 'Hits Tristes'},
+        title="Top 10 Gêneros por Volume de Hits Melancólicos"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+        "coloraxis": {"showscale": False}
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_7():
+    fig = px.bar(
+        df_artistas, x="popularidade_media", y="artista", orientation="h",
+        color="popularidade_media", color_continuous_scale="Purples",
+        labels={'popularidade_media': 'Popularidade Média', 'artista': 'Artista'},
+        title="Top 10 Artistas por Consistência Comercial no Dataset"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+        "coloraxis": {"showscale": False},
+        "yaxis": {"categoryorder": "total ascending"}
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_br_1():
+    df_br_melt = df_br.melt(id_vars='genero', var_name='Atributo', value_name='Média')
+    df_br_melt['Atributo'] = df_br_melt['Atributo'].map({'dance': 'Dançabilidade', 'energia': 'Energia', 'acustico': 'Acústico'})
+    df_br_melt['genero_formatado'] = df_br_melt['genero'].map(MAPA_NOMES_BR)
+    fig = px.bar(
+        df_br_melt, x="genero_formatado", y="Média", color="Atributo", barmode="group",
+        color_discrete_sequence=["#50fa7b", "#8be9fd", "#ffb86c"],
+        labels={'genero_formatado': 'Gênero', 'Média': 'Média'},
+        title="Comparativo Sonoro: Gêneros Musicais Brasileiros"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_br_2():
+    df_br_completo = df[df['genero'].isin(['sertanejo', 'forro', 'samba', 'pagode', 'mpb', 'funk'])].copy()
+    df_br_completo['genero_formatado'] = df_br_completo['genero'].map(MAPA_NOMES_BR)
+    fig = px.box(
+        df_br_completo, x="genero_formatado", y="bpm", color="genero_formatado",
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        labels={'genero_formatado': 'Gênero', 'bpm': 'BPM (Velocidade)'},
+        title="Distribuição de Velocidade (BPM) por Gênero Nacional"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+        "showlegend": False
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+def plot_insight_br_3():
+    df_br_completo = df[df['genero'].isin(['sertanejo', 'forro', 'samba', 'pagode', 'mpb', 'funk'])].copy()
+    df_br_completo['genero_formatado'] = df_br_completo['genero'].map(MAPA_NOMES_BR)
+    df_pop_br = df_br_completo.groupby('genero_formatado')['popularidade'].mean().reset_index().sort_values(by='popularidade', ascending=False)
+    fig = px.bar(
+        df_pop_br, x="popularidade", y="genero_formatado", orientation="h",
+        color="popularidade", color_continuous_scale="Greens",
+        labels={'popularidade': 'Popularidade Média', 'genero_formatado': 'Gênero'},
+        title="Popularidade Média dos Gêneros Nacionais no Dataset"
+    )
+    layout = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+        "coloraxis": {"showscale": False},
+        "yaxis": {"categoryorder": "total ascending"}
+    }
+    fig.update_layout(**layout)
+    return fig
+
+
+# ─────────────────────────────────────────────
+#  ESTRUTURADORES DE LAYOUT DOS CARDS DE INSIGHTS
+# ─────────────────────────────────────────────
+def card_insight(titulo, figure_id, figure_or_graph, legenda_visual, o_que_mostra, insight):
+    return html.Div(
+        style=CARD_STYLE,
+        children=[
+            html.H3(titulo, style={"color": ROXO, "fontFamily": FONT, "fontSize": "14px", "fontWeight": "700", "marginBottom": "16px"}),
+            html.Div(
+                style={"display": "grid", "gridTemplateColumns": "1.2fr 0.8fr", "gap": "20px", "alignItems": "center"},
+                children=[
+                    # Coluna do Gráfico
+                    html.Div(
+                        children=[
+                            dcc.Graph(id=figure_id, figure=figure_or_graph, config={"displayModeBar": False})
+                        ]
+                    ),
+                    # Coluna das Explicações
+                    html.Div(
+                        style={"display": "flex", "flexDirection": "column", "justifyContent": "center"},
+                        children=[
+                            html.P(
+                                [html.Strong("Legenda e Visual: "), legenda_visual],
+                                style={"fontSize": "11px", "color": CINZA, "marginBottom": "12px", "lineHeight": "1.3"}
+                            ),
+                            html.Div(
+                                [html.Strong("O que o dado mostra:"), html.Br(), o_que_mostra],
+                                style=ESTILO_DADO
+                            ),
+                            html.Div(
+                                [html.Strong("Insight:"), html.Br(), insight],
+                                style=ESTILO_INSIGHT
+                            ),
+                        ]
+                    )
+                ]
+            )
+        ]
+    )
+
+
+# ─────────────────────────────────────────────
+#  LAYOUTS DAS ABAS
+# ─────────────────────────────────────────────
+def layout_relatorio_mundial():
+    return html.Div(
+        children=[
+            html.H2("Histórias e Curiosidades do Mercado Musical Global", style={"color": BRANCO, "fontFamily": FONT, "fontSize": "16px", "fontWeight": "700", "marginBottom": "20px"}),
+            
+            card_insight(
+                "1. O DNA Sonoro muda drasticamente por Gênero",
+                "insight-graph-1", plot_insight_1(),
+                "Eixo X: Dançabilidade · Eixo Y: Energia · Tamanho da bolha: Volume de faixas no banco · Cor: Escala de Energia.",
+                "Gêneros essencialmente urbanos, como Hip-hop e Funk, posicionam-se no extremo direito (Dançabilidade média de 0.730 e 0.692). Gêneros instrumentais e de performance física, como Sertanejo e Rock, lideram em Energia (acima de 0.640).",
+                "O comportamento sonoro depende diretamente do estilo. Enquanto os gêneros urbanos são estruturados em cima de batidas rítmicas feitas para dançar, estilos clássicos e orgânicos priorizam a intensidade instrumental e o vigor da performance."
+            ),
+            
+            card_insight(
+                "2. Mega Hits são estatisticamente mais animados",
+                "insight-graph-2", plot_insight_2(),
+                "Eixo X: Atributos · Eixo Y: Média (0 a 1) · Barra Verde: Mega Hits · Barra Cinza: Faixas comuns.",
+                "Enquanto as músicas comuns têm uma média moderada de Dançabilidade (0.55), os Mega Hits saltam consideravelmente para uma média de 0.65 de Dançabilidade e 0.66 de Energia.",
+                "Músicas que alcançam grande repercussão de público tendem a ser significativamente mais enérgicas e propensas à dança em comparação com a média geral, refletindo uma forte inclinação do público por faixas dinâmicas e estimulantes nas paradas."
+            ),
+            
+            card_insight(
+                "3. Dançabilidade é a métrica número 1 para prever o Sucesso",
+                "insight-graph-3", plot_insight_3(),
+                "Eixo X: Peso do atributo no modelo de IA · Eixo Y: Variável de áudio analisada · Cor: Intensidade da importância.",
+                "O modelo de classificação inteligente (Random Forest) identificou que a Dançabilidade obteve disparadamente a maior importância na classificação (acima de 35% de peso), seguida de perto pela Energia.",
+                "A cadência e a capacidade de movimentação (dançabilidade) são os fatores mais determinantes para definir a popularidade de uma faixa. O ritmo e a pulsação corporal se sobressaem sobre atributos como velocidade (BPM) ou intensidade sonora bruta no gosto do grande público."
+            ),
+            
+            card_insight(
+                "4. A Guerra do Volume (Loudness War) no Streaming",
+                "insight-graph-4", plot_insight_4(),
+                "Eixo X: Grupos · Eixo Y: Decibéis (valores negativos, quanto menor o volume negativo, mais alto é o som) · Caixa Verde: Limites do volume de Hits.",
+                "Estatisticamente, os Hits tocam bem mais alto, concentrando sua média em -6.7 dB. Músicas comuns ou menos escutadas tocam de forma significativamente mais baixa, com média de -8.5 dB.",
+                "As faixas mais escutadas possuem uma masterização estatisticamente mais alta do que a média geral, um reflexo prático do fenômeno da compressão dinâmica na música popular contemporânea para capturar a atenção imediata do ouvinte."
+            ),
+            
+            card_insight(
+                "5. O Mainstream praticamente baniu o som Acústico",
+                "insight-graph-5", plot_insight_5(),
+                "Eixo X: Grupos · Eixo Y: Escala acústica (0 representa digital; 1 representa acústico puro) · Barra Verde: Nível nos hits.",
+                "Canções comuns mantêm um índice médio de som acústico de 0.33. Nos Mega Hits, esse índice despenca para 0.22, evidenciando uma sonoridade predominantemente artificial e sintetizada.",
+                "Há uma clara preferência do grande público por arranjos eletrônicos e digitais. Instrumentos puramente acústicos têm menor representatividade entre as faixas mais ouvidas do que no catálogo geral, apontando para uma era de produções sintetizadas."
+            ),
+            
+            card_insight(
+                "6. O canal de sucesso específico para músicas Tristes",
+                "insight-graph-6", plot_insight_6(),
+                "Eixo X: Gêneros musicais · Eixo Y: Quantidade de faixas melancólicas que viraram hit · Cor: Escala de quantidade.",
+                "Ao cruzar Valência baixa (músicas melancólicas ou sombrias, abaixo de 0.4) com alta popularidade, descobrimos que os gêneros que mais conseguem emplacar essa sonoridade são Alt-Rock e Indie-Pop.",
+                "Embora músicas melancólicas (baixa valência) encontrem maior barreira na média geral, elas encontram um espaço fértil de grande recepção de público no Rock Alternativo e no Indie-Pop, onde há maior conexão do ouvinte com composições emotivas."
+            ),
+            
+            card_insight(
+                "7. Artistas de Elite e Consistência (O Efeito Bad Bunny)",
+                "insight-graph-7", plot_insight_7(),
+                "Eixo X: Média de popularidade · Eixo Y: Nomes dos artistas · Cor: Escala de popularidade do grupo.",
+                "Artistas de alta consistência como Bad Bunny sustentam médias altíssimas de popularidade (85.3) ao longo de dezenas de músicas no dataset, distanciando-se de sucessos isolados de um hit só.",
+                "A popularidade consistente de artistas consagrados sugere um efeito de arrasto: catálogos consolidados geram engajamento contínuo, fazendo com que novos lançamentos desses artistas já iniciem com grande vantagem de recomendação."
+            ),
+        ]
+    )
+
+
+def layout_relatorio_nacional():
+    return html.Div(
+        children=[
+            html.H2("Relatório Especial: O DNA da Música Brasileira", style={"color": BRANCO, "fontFamily": FONT, "fontSize": "16px", "fontWeight": "700", "marginBottom": "20px"}),
+            
+            card_insight(
+                "1. O Comportamento Sonoro dos Ritmos Brasileiros",
+                "insight-br-graph-1", plot_insight_br_1(),
+                "Eixo X: Gêneros nacionais · Eixo Y: Escala média (0 a 1) · Barra Verde: Dançabilidade · Barra Azul: Energia · Barra Laranja: Nível Acústico.",
+                "O Funk lidera em Dançabilidade (0.692) e possui o menor índice acústico (0.324). O Forró atinge a maior Energia média (0.789). Pagode e Samba destacam-se como os mais orgânicos, com os maiores índices acústicos (0.562 e 0.485, respectivamente).",
+                "A música brasileira exibe um comportamento sonoro multifacetado: enquanto o Funk e o Forró apresentam alto apelo físico com grande dançabilidade e intensidade digital, estilos como o Pagode e o Samba mantêm viva a rica tradição acústica nacional através de instrumentos orgânicos."
+            ),
+            
+            card_insight(
+                "2. A Velocidade e a Pulsação do Ritmo Nacional (BPM)",
+                "insight-br-graph-2", plot_insight_br_2(),
+                "Eixo X: Gêneros nacionais · Eixo Y: Batidas Por Minuto (BPM) · Caixas Coloridas: Variação e limites de velocidade das músicas.",
+                "O Forró lidera em andamento físico rápido com uma média de velocidade próxima a 130 BPM, acompanhado de perto pelo Funk (média de 125 BPM). A MPB e o Samba apresentam andamentos mais cadenciados e controlados, com médias entre 110 e 115 BPM.",
+                "Gêneros focados em comemorações e performance de dança ativa (como Forró e Funk) estruturam-se sobre andamentos rápidos e tempos marcados. Em contrapartida, estilos voltados à apreciação poética e dança clássica (Samba e MPB) priorizam ritmos confortáveis e andamentos mais relaxantes para o ouvinte."
+            ),
+            
+            card_insight(
+                "3. Tração Comercial e Aceitação dos Gêneros Brasileiros",
+                "insight-br-graph-3", plot_insight_br_3(),
+                "Eixo X: Escala de Popularidade Média (0 a 100) · Eixo Y: Gêneros nacionais · Cor: Intensidade da popularidade média.",
+                "O Sertanejo e o Funk apresentam a maior média de popularidade no banco de dados (ambos acima de 50 de pontuação média). MPB e Samba mantêm médias estáveis mas inferiores (entre 35 e 40).",
+                "O Sertanejo e o Funk possuem forte apelo de consumo em massa e rotação contínua nas plataformas de streaming atuais, concentrando os maiores volumes de engajamento diário de playlists comerciais. A MPB e o Samba, embora possuam valor cultural indiscutível, operam em nichos de consumo estáveis, mas com menor frequência de reprodução massiva nos charts."
+            ),
+        ]
+    )
+
+
+def layout_laboratorio_controles():
+    return html.Div(
+        style={**CARD_STYLE, "marginBottom": "20px"},
+        children=[
+            html.H3("Filtros do Laboratório Interativo", style={"color": ROXO, "fontFamily": FONT, "fontSize": "13px", "fontWeight": "700", "marginBottom": "16px"}),
+            html.Div(
+                style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "24px"},
+                children=[
+                    # Coluna de Gêneros
+                    html.Div(
+                        children=[
+                            html.P("SELECIONAR GÊNEROS PARA ANÁLISE:", style=TITLE_STYLE),
+                            dcc.Dropdown(
+                                id="lab-generos",
+                                options=[{"label": g, "value": g} for g in GENEROS_LISTA],
+                                value=['pop', 'rock', 'sertanejo', 'funk', 'electronic', 'latin'],
+                                multi=True,
+                                clearable=False,
+                                style=dropdown_style,
+                            ),
+                        ]
+                    ),
+                    # Coluna de Popularidade
+                    html.Div(
+                        children=[
+                            html.P("LIMITAR POPULARIDADE DAS MÚSICAS:", style=TITLE_STYLE),
+                            dcc.RangeSlider(
+                                id="lab-popularidade",
+                                min=0,
+                                max=100,
+                                step=1,
+                                value=[0, 100],
+                                marks={0: {"label": "0", "style": {"color": CINZA}}, 20: "20", 40: "40", 60: "60", 80: "80", 100: {"label": "100", "style": {"color": CINZA}}},
+                                tooltip={"always_visible": False, "placement": "bottom"},
+                            ),
+                        ]
+                    ),
+                ]
+            )
+        ]
+    )
+
+
+def layout_laboratorio_grid():
+    return html.Div(
+        id="lab-grid-container",
+        children=[
+            html.H3("Visualizações Editáveis", style={"color": ROXO, "fontFamily": FONT, "fontSize": "13px", "fontWeight": "700", "marginTop": "24px", "marginBottom": "16px"}),
+            
+            # Linha 1
+            html.Div(
+                style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px", "marginBottom": "16px"},
+                children=[
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-1", config={"displayModeBar": False})]),
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-2", config={"displayModeBar": False})]),
+                ]
+            ),
+            # Linha 2
+            html.Div(
+                style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px", "marginBottom": "16px"},
+                children=[
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-3", config={"displayModeBar": False})]),
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-4", config={"displayModeBar": False})]),
+                ]
+            ),
+            # Linha 3
+            html.Div(
+                style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px", "marginBottom": "16px"},
+                children=[
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-5", config={"displayModeBar": False})]),
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-6", config={"displayModeBar": False})]),
+                ]
+            ),
+            # Linha 4
+            html.Div(
+                style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px", "marginBottom": "16px"},
+                children=[
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-7", config={"displayModeBar": False})]),
+                    html.Div(style=CARD_STYLE, children=[dcc.Graph(id="lab-graph-8", config={"displayModeBar": False})]),
+                ]
+            ),
+        ]
+    )
+
+
+def layout_laboratorio():
+    return html.Div(
+        children=[
+            layout_laboratorio_controles(),
+            html.Div(id="lab-kpi-container"),
+            layout_laboratorio_grid(),
+        ]
+    )
+
+
+# ─────────────────────────────────────────────
+#  Navegação Ativa - Style Helper
+# ─────────────────────────────────────────────
+def obter_estilo_botao(aba_selecionada, aba_alvo):
+    if aba_selecionada == aba_alvo:
+        return {
+            **BTN_BASE_STYLE,
+            "border": f"1px solid {ROXO}",
+            "color": ROXO,
+            "boxShadow": f"0 0 10px rgba(195, 166, 255, 0.12)",
+        }
+    return {
+        **BTN_BASE_STYLE,
+        "color": CINZA,
+    }
+
+
+# ─────────────────────────────────────────────
+#  APP DASH E LAYOUT PRINCIPAL
+# ─────────────────────────────────────────────
+app = dash.Dash(__name__, title="Spotify · Cyberpunk Dashboard", suppress_callback_exceptions=True)
 
 app.layout = html.Div(
     style={"background": BG_PAGE, "minHeight": "100vh", "padding": "24px 32px", "fontFamily": FONT},
     children=[
+        # Armazena a aba selecionada atual
+        dcc.Store(id="aba-selecionada", data="relatorio_mundial"),
 
         # ── HEADER ──────────────────────────────────────
         html.Div(
@@ -506,8 +765,9 @@ app.layout = html.Div(
                     ],
                 ),
                 html.P(
-                    "Análise interativa de 114.000 faixas do Spotify · DNA sonoro · gêneros · o que faz um hit",
-                    style={"color": CINZA, "fontSize": "12px", "margin": "0"},
+                    "Uma investigação profunda do DNA sonoro por trás dos maiores hits do Spotify através de dados e machine learning.  \n"
+                    "Os dados utilizados nesta análise foram obtidos a partir do Spotify Tracks Dataset no Kaggle, abrangendo as características técnicas de áudio extraídas diretamente da API oficial da plataforma.",
+                    style={"color": CINZA, "fontSize": "11px", "margin": "0", "lineHeight": "1.5"},
                 ),
                 html.Div(
                     style={"height": "1px", "background": f"linear-gradient(90deg, {ROXO}, {ROSA}, transparent)",
@@ -516,127 +776,27 @@ app.layout = html.Div(
             ],
         ),
 
-        # ── KPIs ────────────────────────────────────────
+        # ── NAVEGAÇÃO ───────────────────────────────────
         html.Div(
-            style={"display": "flex", "gap": "14px", "marginBottom": "20px", "flexWrap": "wrap"},
+            style={"display": "flex", "gap": "16px", "marginBottom": "24px"},
             children=[
-                kpi_card("TOTAL DE FAIXAS",  TOTAL_FAIXAS,  ROXO),
-                kpi_card("GÊNEROS ÚNICOS",   TOTAL_GENEROS, CIANO),
-                kpi_card("TAXA DE HITS",     TAXA_HITS,     ROSA),
-                kpi_card("BPM MÉDIO",        BPM_MEDIO,     VERDE),
-                html.Div(
-                    style={**CARD_STYLE, "flex": "2", "minWidth": "260px"},
-                    children=[
-                        html.P("FILTRO GLOBAL", style=TITLE_STYLE),
-                        dcc.Dropdown(
-                            id="filtro-genero",
-                            options=[{"label": "Todos os gêneros", "value": "TODOS"}]
-                                    + [{"label": g, "value": g} for g in GENEROS_LISTA],
-                            value="TODOS",
-                            clearable=False,
-                            style=dropdown_style,
-                        ),
-                    ],
-                ),
-            ],
+                html.Button("RELATÓRIO MUNDIAL", id="btn-mundial", n_clicks=0, style=BTN_BASE_STYLE),
+                html.Button("RELATÓRIO NACIONAL", id="btn-nacional", n_clicks=0, style=BTN_BASE_STYLE),
+                html.Button("LABORATÓRIO DE EXPLORAÇÃO", id="btn-laboratorio", n_clicks=0, style=BTN_BASE_STYLE),
+            ]
         ),
 
-        # ── LINHA 1: DNA + SCATTER ───────────────────────
-        html.Div(
-            style={"display": "grid", "gridTemplateColumns": "1fr 1.1fr", "gap": "16px", "marginBottom": "16px"},
-            children=[
-
-                # DNA com selector de atributo
-                html.Div(
-                    style=CARD_STYLE,
-                    children=[
-                        html.Div(
-                            style={"display": "flex", "justifyContent": "space-between",
-                                   "alignItems": "center", "marginBottom": "12px"},
-                            children=[
-                                html.P("ATRIBUTO", style=TITLE_STYLE),
-                                dcc.Dropdown(
-                                    id="dna-atributo",
-                                    options=[{"label": v, "value": k} for k, v in ATRIBUTOS.items()],
-                                    value="danceability",
-                                    clearable=False,
-                                    style={**dropdown_style, "width": "160px"},
-                                ),
-                            ],
-                        ),
-                        dcc.Graph(id="graph-dna", config={"displayModeBar": False}),
-                    ],
-                ),
-
-                # Scatter
-                html.Div(
-                    style=CARD_STYLE,
-                    children=[
-                        dcc.Graph(id="graph-scatter", config={"displayModeBar": False}),
-                    ],
-                ),
-            ],
-        ),
-
-        # ── LINHA 2: POPULARIDADE POR GÊNERO (full width) ─
-        html.Div(
-            style={**CARD_STYLE, "marginBottom": "16px"},
-            children=[
-                dcc.Graph(id="graph-pop-genero", figure=fig_popularidade_genero(),
-                          config={"displayModeBar": False}),
-            ],
-        ),
-
-        # ── LINHA 3: HISTOGRAMA + IMPORTÂNCIA ───────────
-        html.Div(
-            style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px", "marginBottom": "16px"},
-            children=[
-                html.Div(style=CARD_STYLE, children=[
-                    dcc.Graph(id="graph-hist", figure=fig_histograma(),
-                              config={"displayModeBar": False}),
-                ]),
-                html.Div(style=CARD_STYLE, children=[
-                    dcc.Graph(id="graph-imp", figure=fig_importancia(),
-                              config={"displayModeBar": False}),
-                ]),
-            ],
-        ),
-
-        # ── LINHA 4: RADAR POR GÊNERO ───────────────────
-        html.Div(
-            style={"display": "grid", "gridTemplateColumns": "1fr 2fr", "gap": "16px", "marginBottom": "16px"},
-            children=[
-                html.Div(
-                    style=CARD_STYLE,
-                    children=[
-                        html.P("PERFIL SONORO — RADAR", style=TITLE_STYLE),
-                        html.P(
-                            "Selecione um gênero para comparar seu DNA sonoro com a média geral.",
-                            style={"color": CINZA, "fontSize": "11px", "marginBottom": "12px"},
-                        ),
-                        dcc.Dropdown(
-                            id="radar-genero",
-                            options=[{"label": g, "value": g} for g in GENEROS_LISTA],
-                            value="sertanejo",
-                            clearable=False,
-                            style=dropdown_style,
-                        ),
-                        html.Div(id="radar-stats", style={"marginTop": "16px"}),
-                    ],
-                ),
-                html.Div(style=CARD_STYLE, children=[
-                    dcc.Graph(id="graph-radar", config={"displayModeBar": False}),
-                ]),
-            ],
-        ),
+        # ── CONTEÚDO ────────────────────────────────────
+        html.Div(id="kpi-topo-container"),
+        html.Div(id="conteudo-principal-aba"),
 
         # ── FOOTER ──────────────────────────────────────
         html.Div(
             style={"height": "1px", "background": f"linear-gradient(90deg, transparent, {ROXO}, {ROSA}, transparent)",
-                   "marginBottom": "16px"},
+                   "marginTop": "32px", "marginBottom": "16px"},
         ),
         html.P(
-            "◈ Spotify Cyberpunk Dashboard · dados: HuggingFace spotify-tracks-dataset · banco: SQLite local",
+            "◈ Spotify Cyberpunk Dashboard · dados: Kaggle spotify-tracks-dataset · banco: SQLite local",
             style={"color": CINZA, "fontSize": "10px", "textAlign": "center", "letterSpacing": "1px"},
         ),
     ],
@@ -644,90 +804,294 @@ app.layout = html.Div(
 
 
 # ─────────────────────────────────────────────
-#  CALLBACKS
+#  CALLBACKS DE ABAS E KPIs FIXOS
 # ─────────────────────────────────────────────
+@app.callback(
+    Output("aba-selecionada", "data"),
+    Input("btn-mundial", "n_clicks"),
+    Input("btn-nacional", "n_clicks"),
+    Input("btn-laboratorio", "n_clicks"),
+    State("aba-selecionada", "data")
+)
+def alternar_aba_clique(c1, c2, c3, aba_atual):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return aba_atual
+    
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "btn-mundial":
+        return "relatorio_mundial"
+    elif button_id == "btn-nacional":
+        return "relatorio_nacional"
+    elif button_id == "btn-laboratorio":
+        return "laboratorio"
+    return aba_atual
+
 
 @app.callback(
-    Output("graph-dna", "figure"),
-    Input("dna-atributo", "value"),
-    Input("filtro-genero", "value"),
+    Output("btn-mundial", "style"),
+    Output("btn-nacional", "style"),
+    Output("btn-laboratorio", "style"),
+    Output("kpi-topo-container", "children"),
+    Output("conteudo-principal-aba", "children"),
+    Input("aba-selecionada", "data")
 )
-def atualizar_dna(atributo, genero):
-    dados = df if genero == "TODOS" else df[df["genero"] == genero]
-    label = ATRIBUTOS.get(atributo, atributo)
-    medias = dados.groupby("genero")[atributo].mean().sort_values(ascending=True).reset_index()
-    fig = go.Figure(
-        go.Bar(
-            x=medias[atributo],
-            y=medias["genero"],
-            orientation="h",
-            marker=dict(
-                color=medias[atributo],
-                colorscale=[[0, BG_CARD2], [0.4, CINZA], [0.75, ROXO], [1, ROSA]],
-                showscale=False,
-            ),
-            text=medias[atributo].round(2),
-            textposition="outside",
-            textfont=dict(size=9, color=CINZA),
-            hovertemplate=f"<b>%{{y}}</b><br>{label}: %{{x:.3f}}<extra></extra>",
+def renderizar_conteudo_aba(aba):
+    estilo_m = obter_estilo_botao(aba, "relatorio_mundial")
+    estilo_n = obter_estilo_botao(aba, "relatorio_nacional")
+    estilo_l = obter_estilo_botao(aba, "laboratorio")
+    
+    if aba == "relatorio_mundial":
+        # KPIs globais
+        kpi_layout = gerar_kpi_layout(df)
+        conteudo = layout_relatorio_mundial()
+    elif aba == "relatorio_nacional":
+        # KPIs nacionais (Sertanejo, Funk, Samba, Pagode, Forró e MPB)
+        df_nacional = df[df["genero"].isin(['sertanejo', 'forro', 'samba', 'pagode', 'mpb', 'funk'])]
+        kpi_layout = gerar_kpi_layout(df_nacional)
+        conteudo = layout_relatorio_nacional()
+    else: # laboratorio
+        # O laboratório renderiza seus próprios KPIs em outro callback dinamicamente
+        kpi_layout = None
+        conteudo = layout_laboratorio()
+        
+    return estilo_m, estilo_n, estilo_l, kpi_layout, conteudo
+
+
+# ─────────────────────────────────────────────
+#  CALLBACK REATIVO DO LABORATÓRIO (KPIs + 8 Gráficos)
+# ─────────────────────────────────────────────
+@app.callback(
+    Output("lab-kpi-container", "children"),
+    Output("lab-graph-1", "figure"),
+    Output("lab-graph-2", "figure"),
+    Output("lab-graph-3", "figure"),
+    Output("lab-graph-4", "figure"),
+    Output("lab-graph-5", "figure"),
+    Output("lab-graph-6", "figure"),
+    Output("lab-graph-7", "figure"),
+    Output("lab-graph-8", "figure"),
+    Input("lab-generos", "value"),
+    Input("lab-popularidade", "value"),
+)
+def atualizar_laboratorio(generos_selecionados, pop_range):
+    # Filtragem em tempo real
+    df_filtrado = df[
+        (df["genero"].isin(generos_selecionados)) &
+        (df["popularidade"] >= pop_range[0]) &
+        (df["popularidade"] <= pop_range[1])
+    ]
+    
+    if df_filtrado.empty:
+        empty_fig = go.Figure()
+        layout_e = {
+            **layout_base,
+            "title": dict(text="SEM DADOS CORRESPONDENTES AOS FILTROS", font=dict(size=11, color=ROXO)),
+            "height": 330
+        }
+        empty_fig.update_layout(**layout_e)
+        kpis = html.Div(
+            style={**CARD_STYLE, "padding": "15px", "textAlign": "center"},
+            children=[html.P("Nenhuma música corresponde aos filtros selecionados. Tente expandir sua pesquisa!", style={"color": ROSA, "fontFamily": FONT, "margin": 0})]
         )
-    )
-    layout = {
+        return kpis, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+
+    # KPIs reativos
+    kpis = gerar_kpi_layout(df_filtrado)
+    
+    # ── 1. Distribuição: Energia vs Dançabilidade ──
+    # Amostragem para preservar a performance no scatter
+    dados_scatter = df_filtrado
+    if len(dados_scatter) > 2000:
+        dados_scatter = dados_scatter.sample(2000, random_state=42)
+        
+    cat_map  = {"Baixa (0–30)": CINZA, "Média (31–69)": CIANO, "Sucesso (70–100)": ROSA}
+    size_map = {"Baixa (0–30)": 4,     "Média (31–69)": 6,     "Sucesso (70–100)": 9}
+
+    fig1 = go.Figure()
+    for cat, cor in cat_map.items():
+        sub = dados_scatter[dados_scatter["categoria"] == cat]
+        if not sub.empty:
+            fig1.add_trace(
+                go.Scatter(
+                    x=sub["danceability"],
+                    y=sub["energy"],
+                    mode="markers",
+                    name=cat,
+                    marker=dict(
+                        color=cor,
+                        size=size_map[cat],
+                        opacity=0.6,
+                        line=dict(width=0),
+                    ),
+                    hovertemplate=(
+                        "<b>%{customdata[0]}</b><br>"
+                        "Artista: %{customdata[1]}<br>"
+                        "Dance: %{x:.2f}  Energia: %{y:.2f}<br>"
+                        "Popularidade: %{customdata[2]}<extra></extra>"
+                    ),
+                    customdata=sub[["musica", "artista", "popularidade"]].values,
+                )
+            )
+    layout1 = {
         **layout_base,
-        "title": dict(text=f"DNA SONORO · {label.upper()}", font=dict(size=11, color=ROXO)),
-        "xaxis": dict(**layout_base["xaxis"], range=[0, 1.15] if atributo != "bpm" else None),
-        "height": 400,
+        "title": dict(text="1. Distribuição: Energia vs Dançabilidade", font=dict(size=11, color=ROXO)),
+        "xaxis": dict(**layout_base["xaxis"], title="Dançabilidade", range=[-0.02, 1.05]),
+        "yaxis": dict(**layout_base["yaxis"], title="Energia",       range=[-0.02, 1.05]),
+        "height": 330,
+        "legend": dict(**layout_base["legend"], title=dict(text="Popularidade", font=dict(color=CINZA, size=9))),
     }
-    fig.update_layout(**layout)
-    return fig
+    fig1.update_layout(**layout1)
 
-
-@app.callback(
-    Output("graph-scatter", "figure"),
-    Input("filtro-genero", "value"),
-)
-def atualizar_scatter(genero):
-    g = None if genero == "TODOS" else genero
-    return fig_scatter(g)
-
-
-@app.callback(
-    Output("graph-radar", "figure"),
-    Output("radar-stats", "children"),
-    Input("radar-genero", "value"),
-)
-def atualizar_radar(genero):
-    fig = fig_radar_genero(genero)
-
-    sub   = df[df["genero"] == genero]
-    total = len(sub)
-    hits  = sub["is_hit"].sum()
-    taxa  = hits / total * 100 if total else 0
-    pop   = sub["popularidade"].mean()
-
-    stats = html.Div(
-        style={"display": "flex", "flexDirection": "column", "gap": "8px"},
-        children=[
-            _stat_mini("Faixas",        f"{total:,}".replace(",", "."), CINZA),
-            _stat_mini("Hits",          str(hits),                      ROSA),
-            _stat_mini("Taxa de hit",   f"{taxa:.1f}%",                 VERDE),
-            _stat_mini("Pop. média",    f"{pop:.0f}",                   ROXO),
-        ],
+    # ── 2. Comparativo Sonoro por Gênero Selecionado ──
+    df_gen_avg = df_filtrado.groupby('genero')[['danceability', 'energy', 'acousticness']].mean().reset_index()
+    df_gen_melt = df_gen_avg.melt(id_vars='genero', var_name='Atributo', value_name='Média')
+    df_gen_melt['Atributo'] = df_gen_melt['Atributo'].map({'danceability': 'Dançabilidade', 'energy': 'Energia', 'acousticness': 'Acústico'})
+    fig2 = px.bar(
+        df_gen_melt, x="genero", y="Média", color="Atributo", barmode="group",
+        color_discrete_sequence=[VERDE, CIANO, LARANJA],
+        labels={'genero': 'Gênero', 'Média': 'Média'},
+        title="2. Comparativo Sonoro por Gênero Selecionado"
     )
-    return fig, stats
+    layout2 = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig2.update_layout(**layout2)
 
-
-def _stat_mini(label, valor, cor):
-    return html.Div(
-        style={"display": "flex", "justifyContent": "space-between",
-               "borderBottom": f"1px solid {BORDER}", "paddingBottom": "4px"},
-        children=[
-            html.Span(label, style={"color": CINZA,  "fontSize": "11px"}),
-            html.Span(valor, style={"color": cor,     "fontSize": "11px", "fontWeight": "600"}),
-        ],
+    # ── 3. Ritmo e Intensidade: Hits vs Comuns ──
+    df_anim_f = df_filtrado.groupby('status_hit')[['danceability', 'energy']].mean().reset_index()
+    df_melt_f = df_anim_f.melt(id_vars='status_hit', var_name='Atributo', value_name='Média')
+    df_melt_f['Atributo'] = df_melt_f['Atributo'].map({'danceability': 'Dançabilidade', 'energy': 'Energia'})
+    fig3 = px.bar(
+        df_melt_f, x="Atributo", y="Média", color="status_hit", barmode="group",
+        color_discrete_map={"Mega Hit (>=70)": VERDE, "Comum (<70)": CINZA},
+        labels={'status_hit': 'Categoria', 'Média': 'Média'},
+        title="3. Ritmo e Intensidade: Hits vs Comuns"
     )
+    layout3 = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig3.update_layout(**layout3)
+
+    # ── 4. Distribuição do Volume das Faixas ──
+    dados_box = df_filtrado.sample(min(len(df_filtrado), 2000), random_state=42)
+    fig4 = px.box(
+        dados_box, x="status_hit", y="loudness", color="status_hit",
+        color_discrete_map={"Mega Hit (>=70)": VERDE, "Comum (<70)": CINZA},
+        labels={'status_hit': 'Categoria', 'loudness': 'Volume (dB)'},
+        title="4. Distribuição do Volume das Faixas"
+    )
+    layout4 = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig4.update_layout(**layout4)
+
+    # ── 5. Índice de Acústica Médio: Hits vs Comuns ──
+    df_acust_f = df_filtrado.groupby('status_hit')['acousticness'].mean().reset_index()
+    fig5 = px.bar(
+        df_acust_f, x="status_hit", y="acousticness", color="status_hit",
+        color_discrete_map={"Mega Hit (>=70)": VERDE, "Comum (<70)": CINZA},
+        labels={'status_hit': 'Categoria', 'acousticness': 'Índice Acústico'},
+        title="5. Índice de Acústica Médio: Hits vs Comuns"
+    )
+    layout5 = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig5.update_layout(**layout5)
+
+    # ── 6. Distribuição de Alegria (Valência) das Faixas ──
+    fig6 = px.violin(
+        dados_box, y="valence", color="status_hit",
+        box=True, points=False,
+        color_discrete_map={"Mega Hit (>=70)": VERDE, "Comum (<70)": CINZA},
+        labels={'status_hit': 'Categoria', 'valence': 'Alegria (Valência)'},
+        title="6. Distribuição de Alegria (Valência) das Faixas"
+    )
+    layout6 = {
+        **layout_base,
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "height": 330,
+    }
+    fig6.update_layout(**layout6)
+
+    # ── 7. Gêneros por Volume de Hits Melancólicos ──
+    df_trist_f = df_filtrado[(df_filtrado['popularidade'] >= 70) & (df_filtrado['valence'] < 0.4)]
+    if df_trist_f.empty:
+        fig7 = go.Figure()
+        layout7 = {
+            **layout_base,
+            "title": dict(text="7. Gêneros por Volume de Hits Melancólicos (Sem dados)", font=dict(size=11, color=ROXO)),
+            "height": 330
+        }
+        fig7.update_layout(**layout7)
+    else:
+        df_trist_count_f = df_trist_f['genero'].value_counts().reset_index()
+        df_trist_count_f.columns = ['Gênero', 'Hits Tristes']
+        fig7 = px.bar(
+            df_trist_count_f.head(10), x="Gênero", y="Hits Tristes",
+            color="Hits Tristes", color_continuous_scale="Reds",
+            labels={'Gênero': 'Gênero', 'Hits Tristes': 'Hits Tristes'},
+            title="7. Gêneros por Volume de Hits Melancólicos"
+        )
+        layout7 = {
+            **layout_base,
+            "plot_bgcolor": "rgba(0,0,0,0)",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "height": 330,
+            "coloraxis": {"showscale": False}
+        }
+        fig7.update_layout(**layout7)
+
+    # ── 8. Top 10 Artistas por Popularidade Média ──
+    df_art_f = df_filtrado.groupby('artista').agg(
+        popularidade_media=('popularidade', 'mean'),
+        total_faixas=('musica', 'count')
+    ).reset_index()
+    df_art_f = df_art_f[df_art_f['total_faixas'] >= 2]
+    if df_art_f.empty:
+        fig8 = go.Figure()
+        layout8 = {
+            **layout_base,
+            "title": dict(text="8. Top 10 Artistas por Popularidade Média (Sem dados)", font=dict(size=11, color=ROXO)),
+            "height": 330
+        }
+        fig8.update_layout(**layout8)
+    else:
+        df_art_top_f = df_art_f.sort_values(by='popularidade_media', ascending=False).head(10)
+        fig8 = px.bar(
+            df_art_top_f, x="popularidade_media", y="artista", orientation="h",
+            color="popularidade_media", color_continuous_scale="Purples",
+            labels={'popularidade_media': 'Popularidade Média', 'artista': 'Artista'},
+            title="8. Top 10 Artistas por Popularidade Média"
+        )
+        layout8 = {
+            **layout_base,
+            "plot_bgcolor": "rgba(0,0,0,0)",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "height": 330,
+            "coloraxis": {"showscale": False},
+            "yaxis": {"categoryorder": "total ascending"}
+        }
+        fig8.update_layout(**layout8)
+
+    return kpis, fig1, fig2, fig3, fig4, fig5, fig6, fig7, fig8
 
 
+# ─────────────────────────────────────────────
+#  INICIALIZAÇÃO DO SERVIDOR
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print("\n* Spotify Cyberpunk Dashboard")
