@@ -756,12 +756,6 @@ app.layout = html.Div(
                             style={"color": BRANCO, "fontSize": "22px", "fontWeight": "700",
                                    "letterSpacing": "1px", "margin": "0"},
                         ),
-                        html.Span(
-                            "CYBERPUNK EDITION",
-                            style={"color": ROSA, "fontSize": "10px", "fontWeight": "600",
-                                   "letterSpacing": "3px", "border": f"1px solid {ROSA}",
-                                   "padding": "3px 10px", "borderRadius": "4px"},
-                        ),
                     ],
                 ),
                 html.P(
