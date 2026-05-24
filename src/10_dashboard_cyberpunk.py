@@ -631,13 +631,34 @@ def layout_laboratorio_controles():
                     # Coluna de Gêneros
                     html.Div(
                         children=[
-                            html.P("SELECIONAR GÊNEROS PARA ANÁLISE:", style=TITLE_STYLE),
+                            html.Div(
+                                style={"display": "flex", "justifyContent": "space-between", "alignItems": "center", "marginBottom": "6px"},
+                                children=[
+                                    html.P("SELECIONAR GÊNEROS PARA ANÁLISE:", style={**TITLE_STYLE, "margin": 0}),
+                                    html.Div(
+                                        style={"display": "flex", "gap": "10px"},
+                                        children=[
+                                            html.Button("Selecionar Todos", id="lab-btn-select-all", n_clicks=0, style={
+                                                "background": "none", "border": "none", "color": VERDE, "cursor": "pointer",
+                                                "fontFamily": FONT, "fontSize": "10px", "textTransform": "uppercase", "letterSpacing": "1px",
+                                                "padding": "0"
+                                            }),
+                                            html.Span("|", style={"color": CINZA, "fontSize": "10px"}),
+                                            html.Button("Remover Seleção", id="lab-btn-deselect-all", n_clicks=0, style={
+                                                "background": "none", "border": "none", "color": ROSA, "cursor": "pointer",
+                                                "fontFamily": FONT, "fontSize": "10px", "textTransform": "uppercase", "letterSpacing": "1px",
+                                                "padding": "0"
+                                            })
+                                        ]
+                                    )
+                                ]
+                            ),
                             dcc.Dropdown(
                                 id="lab-generos",
                                 options=[{"label": g, "value": g} for g in GENEROS_LISTA],
                                 value=['pop', 'rock', 'sertanejo', 'funk', 'electronic', 'latin'],
                                 multi=True,
-                                clearable=False,
+                                clearable=True,
                                 style=dropdown_style,
                             ),
                         ]
@@ -850,6 +871,25 @@ def renderizar_conteudo_aba(aba):
         conteudo = layout_laboratorio()
         
     return estilo_m, estilo_n, estilo_l, kpi_layout, conteudo
+
+
+@app.callback(
+    Output("lab-generos", "value"),
+    Input("lab-btn-select-all", "n_clicks"),
+    Input("lab-btn-deselect-all", "n_clicks"),
+    State("lab-generos", "value"),
+    prevent_initial_call=True
+)
+def gerenciar_selecao_dropdown(select_clicks, deselect_clicks, valores_atuais):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return valores_atuais
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if triggered_id == "lab-btn-select-all":
+        return GENEROS_LISTA
+    elif triggered_id == "lab-btn-deselect-all":
+        return []
+    return valores_atuais
 
 
 # ─────────────────────────────────────────────
