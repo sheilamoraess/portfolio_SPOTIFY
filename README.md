@@ -1,11 +1,11 @@
 # O Algoritmo do Sucesso Musical
-Investigação do DNA sonoro dos maiores hits do Spotify usando Python, SQL, Machine Learning e Streamlit.
+Investigação do DNA sonoro dos maiores hits do Spotify usando Python, SQL, Machine Learning e Dash.
 
 ## Contexto
 Milhares de faixas são lançadas diariamente, mas apenas uma fração chega ao topo das paradas. Este projeto analisa os atributos técnicos de áudio de mais de 114 mil faixas do Spotify para entender o que diferencia um hit de uma música comum — e se é possível prever esse sucesso com dados.
 
 ## Stack
-Python · Pandas · SQLite · SQLAlchemy · Scikit-learn · Streamlit · Plotly
+Python · Pandas · SQLite · SQLAlchemy · Scikit-learn · Dash · Plotly
 
 ## Fonte de Dados
 [Spotify Tracks Dataset](https://www.kaggle.com/) — 114 mil faixas com atributos de áudio extraídos da API oficial do Spotify: `danceability`, `energy`, `valence`, `tempo`, `loudness` e `acousticness`.
@@ -16,7 +16,7 @@ Python · Pandas · SQLite · SQLAlchemy · Scikit-learn · Streamlit · Plotly
 3. **ETL** — tratamento de nulos, normalização de tipos e carga via SQLAlchemy
 4. **Limpeza de gêneros** — consolidação de micro-gêneros redundantes em macro-categorias via SQL
 5. **Machine Learning** — `RandomForestClassifier` para identificar os atributos mais decisivos para o sucesso de uma faixa
-6. **Dashboard** — aplicação web interativa com Streamlit e Plotly, com três seções: Relatório Mundial, Relatório Nacional e Laboratório de Exploração
+6. **Dashboard** — aplicação web interativa com Dash e Plotly, contendo visualização de KPIs de negócio, distribuição de popularidade, dispersão de DNA sonoro, importância do RandomForest, radar por gênero e análise de hits.
 
 ## Tópicos Analisados
 1. Atributos de áudio com maior peso na previsão de sucesso de uma faixa
@@ -56,7 +56,7 @@ Ambiente interativo onde o usuário filtra gêneros e faixa de popularidade e at
 ## Como Rodar Localmente
 ```bash
 # 1. Clonar o repositório
-git clone https://github.com/seu-usuario/algoritmo-sucesso-musical
+git clone https://github.com/sheilamoraess/portfolio_SPOTIFY.git
 
 # 2. Instalar dependências
 pip install -r requirements.txt
@@ -67,6 +67,6 @@ python src/03_carregar_banco.py     # cria e popula o banco SQLite
 python src/09_limpeza_generos.py    # consolida micro-gêneros
 
 # 4. Iniciar o dashboard
-streamlit run src/08_dashboard_interativo.py
+python src/10_dashboard_cyberpunk.py
 ```
-O app abre automaticamente em `http://localhost:8501`.
+O app abre em `http://localhost:8050`.
