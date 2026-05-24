@@ -8,7 +8,7 @@ Milhares de faixas são lançadas diariamente, mas apenas uma fração chega ao 
 Python · Pandas · SQLite · SQLAlchemy · Scikit-learn · Streamlit · Plotly
 
 ## Fonte de Dados
-[Spotify Tracks Dataset](https://www.kaggle.com/datasets/maharshipandya/spotify-tracks-dataset) — 114 mil faixas com atributos de áudio extraídos da API oficial do Spotify: `danceability`, `energy`, `valence`, `tempo`, `loudness` e `acousticness`.
+[Spotify Tracks Dataset](https://www.kaggle.com/) — 114 mil faixas com atributos de áudio extraídos da API oficial do Spotify: `danceability`, `energy`, `valence`, `tempo`, `loudness` e `acousticness`.
 
 ## Metodologia
 1. **Coleta** — download e leitura do CSV bruto via pandas
@@ -56,7 +56,7 @@ Ambiente interativo onde o usuário filtra gêneros e faixa de popularidade e at
 ## Como Rodar Localmente
 ```bash
 # 1. Clonar o repositório
-git clone https://github.com/sheilamoraess/portfolio_SPOTIFY.git
+git clone https://github.com/seu-usuario/algoritmo-sucesso-musical
 
 # 2. Instalar dependências
 pip install -r requirements.txt
